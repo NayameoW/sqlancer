@@ -9,14 +9,12 @@ import java.util.stream.Collectors;
 import sqlancer.Randomly;
 import sqlancer.common.gen.ExpressionGenerator;
 import sqlancer.sqlite3.SQLite3GlobalState;
-import sqlancer.sqlite3.ast.SQLite3Aggregate;
+import sqlancer.sqlite3.ast.*;
 import sqlancer.sqlite3.ast.SQLite3Aggregate.SQLite3AggregateFunction;
 import sqlancer.sqlite3.ast.SQLite3Case.CasePair;
 import sqlancer.sqlite3.ast.SQLite3Case.SQLite3CaseWithBaseExpression;
 import sqlancer.sqlite3.ast.SQLite3Case.SQLite3CaseWithoutBaseExpression;
-import sqlancer.sqlite3.ast.SQLite3Constant;
 import sqlancer.sqlite3.ast.SQLite3Constant.SQLite3TextConstant;
-import sqlancer.sqlite3.ast.SQLite3Expression;
 import sqlancer.sqlite3.ast.SQLite3Expression.BetweenOperation;
 import sqlancer.sqlite3.ast.SQLite3Expression.BinaryComparisonOperation;
 import sqlancer.sqlite3.ast.SQLite3Expression.BinaryComparisonOperation.BinaryComparisonOperator;
@@ -34,10 +32,7 @@ import sqlancer.sqlite3.ast.SQLite3Expression.SQLite3PostfixUnaryOperation.Postf
 import sqlancer.sqlite3.ast.SQLite3Expression.Sqlite3BinaryOperation;
 import sqlancer.sqlite3.ast.SQLite3Expression.Sqlite3BinaryOperation.BinaryOperator;
 import sqlancer.sqlite3.ast.SQLite3Expression.TypeLiteral;
-import sqlancer.sqlite3.ast.SQLite3Function;
 import sqlancer.sqlite3.ast.SQLite3Function.ComputableFunction;
-import sqlancer.sqlite3.ast.SQLite3RowValueExpression;
-import sqlancer.sqlite3.ast.SQLite3UnaryOperation;
 import sqlancer.sqlite3.ast.SQLite3UnaryOperation.UnaryOperator;
 import sqlancer.sqlite3.oracle.SQLite3RandomQuerySynthesizer;
 import sqlancer.sqlite3.schema.SQLite3Schema.SQLite3Column;
@@ -56,6 +51,7 @@ public class SQLite3ExpressionGenerator implements ExpressionGenerator<SQLite3Ex
     private boolean allowMatchClause;
     private boolean allowAggregateFunctions;
     private boolean allowSubqueries;
+    private boolean subqueriesOnly;
     private boolean allowAggreates;
 
     public SQLite3ExpressionGenerator(SQLite3ExpressionGenerator other) {
@@ -110,9 +106,15 @@ public class SQLite3ExpressionGenerator implements ExpressionGenerator<SQLite3Ex
         return gen;
     }
 
-    public SQLite3ExpressionGenerator allowSubqueries() {
+    public SQLite3ExpressionGenerator subqueriesOnly() {
         SQLite3ExpressionGenerator gen = new SQLite3ExpressionGenerator(this);
         gen.allowSubqueries = true;
+        return gen;
+    }
+
+    public SQLite3ExpressionGenerator allowOnlySubqueries() {
+        SQLite3ExpressionGenerator gen = new SQLite3ExpressionGenerator(this);
+        gen.subqueriesOnly = true;
         return gen;
     }
 
@@ -235,6 +237,10 @@ public class SQLite3ExpressionGenerator implements ExpressionGenerator<SQLite3Ex
     }
 
     public SQLite3Expression getRandomExpression(int depth) {
+        if (subqueriesOnly) {
+            return SQLite3RandomQuerySynthesizer.generate(globalState, 1);
+        }
+
         if (allowAggreates && Randomly.getBoolean()) {
             return getAggregateFunction(depth + 1);
         }
@@ -310,6 +316,16 @@ public class SQLite3ExpressionGenerator implements ExpressionGenerator<SQLite3Ex
             throw new AssertionError(randomExpressionType);
         }
     }
+
+    public SQLite3Expression generateRandomQueryWithSubquery() {
+        SQLite3Expression subquery = SQLite3RandomQuerySynthesizer.generate(globalState, 1);
+//        SQLite3Expression outerExpr = getAggregate(0, SQLite3AggregateFunction.getRandom());
+//        BinaryComparisonOperator op = BinaryComparisonOperator.getRandomRowValueOperator();
+//        String s = "(SELECT SUM(count) FROM (" + SQLite3Visitor.asString(subquery) + "))";
+//        return new BinaryComparisonOperation(outerExpr, new SQLite3Expression.Subquery(s), op);
+        return subquery;
+    }
+
 
     private SQLite3Expression getAndOrChain(int depth) {
         int num = Randomly.smallNumber() + 2;
