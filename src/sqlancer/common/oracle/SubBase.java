@@ -5,11 +5,9 @@ import sqlancer.MainOptions;
 import sqlancer.SQLConnection;
 import sqlancer.SQLGlobalState;
 import sqlancer.SQLancerDBConnection;
-import sqlancer.common.query.Query;
 import sqlancer.common.query.ExpectedErrors;
+import sqlancer.common.query.Query;
 import sqlancer.common.schema.AbstractRowValue;
-import sqlancer.common.schema.AbstractTables;
-import sqlancer.sqlite3.schema.SQLite3Schema;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,14 +21,14 @@ public abstract class SubBase<S extends SQLGlobalState<?, ?>, R extends Abstract
     protected final MainOptions options;
     protected final SQLConnection con;
 
-    protected R targetRows;
-    protected final int subqueryDepth = 3;
+    protected R targetRow;
+    protected List<R> targetRows;
+    protected final int subqueryDepth = 1;
     protected String subQueryString;
-    protected String flattenedQueryString;
+    protected List<Query<C>> flattenedQueries = new ArrayList<>();
     protected final List<E> rectifiedPredicates = new ArrayList<>();
-    private List<SQLite3Schema.SQLite3Column> fetchColumns;
-    protected List<E> pivotRowExpression = new ArrayList<>();
-
+    protected List<E> fetchColExpression = new ArrayList<>();
+    protected List<E> pivotRowExpressionWithoutTable = new ArrayList<>();
 
 
     protected SubBase(S state) {

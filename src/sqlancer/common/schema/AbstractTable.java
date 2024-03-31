@@ -13,7 +13,7 @@ public abstract class AbstractTable<C extends AbstractTableColumn<?, ?>, I exten
         implements Comparable<AbstractTable<?, ?, ?>> {
 
     protected static final int NO_ROW_COUNT_AVAILABLE = -1;
-    protected final String name;
+    protected String name;
     private final List<C> columns;
     private final List<I> indexes;
     private final boolean isView;
@@ -30,6 +30,9 @@ public abstract class AbstractTable<C extends AbstractTableColumn<?, ?>, I exten
         return name;
     }
 
+    public void setName(String tableName) {
+        this.name = tableName;
+    }
     @Override
     public int compareTo(AbstractTable<?, ?, ?> o) {
         return o.getName().compareTo(getName());

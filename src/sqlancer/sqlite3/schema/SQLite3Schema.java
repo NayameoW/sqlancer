@@ -53,6 +53,8 @@ public class SQLite3Schema extends AbstractSchema<SQLite3GlobalState, SQLite3Tab
         private final SQLite3CollateSequence collate;
         boolean generated;
         private final boolean isPrimaryKey;
+        private String alias;
+        private boolean useAlias;
 
         public enum SQLite3CollateSequence {
             NOCASE, RTRIM, BINARY;
@@ -78,6 +80,18 @@ public class SQLite3Schema extends AbstractSchema<SQLite3GlobalState, SQLite3Tab
             this.generated = generated;
         }
 
+        public void setAlias(String alias) {
+            this.alias = alias;
+        }
+        public String getAlias() {
+            return alias;
+        }
+        public void setUseAlias(boolean useAlias) {
+            this.useAlias = useAlias;
+        }
+        public boolean getUseAlias() {
+            return useAlias;
+        }
         public boolean isPrimaryKey() {
             return isPrimaryKey;
         }
@@ -105,9 +119,18 @@ public class SQLite3Schema extends AbstractSchema<SQLite3GlobalState, SQLite3Tab
             return generated;
         }
 
+        public boolean isInteger() {
+            return isInteger;
+        }
+
         public static SQLite3Column createDummy(String name) {
             return new SQLite3Column(name, SQLite3DataType.INT, false, false, null);
         }
+
+        public String getColName() {
+            return this.getName();
+        }
+
 
     }
 
@@ -187,7 +210,50 @@ public class SQLite3Schema extends AbstractSchema<SQLite3GlobalState, SQLite3Tab
 
         }
 
+        public List<SQLite3RowValue> getRandomRowValues(SQLConnection con, int rowCount) throws SQLException {
+            String randomRows = String.format(
+                    "SELECT %s, %s FROM %s ORDER BY RANDOM() LIMIT %d",
+                    columnNamesAsString(
+                            c -> c.getTable().getName() + "." + c.getName() + " AS " + c.getTable().getName() + c.getName()),
+                    columnNamesAsString(c -> "typeof(" + c.getTable().getName() + "." + c.getName() + ")"),
+                    tableNamesAsString(),
+                    rowCount
+            );
+
+            List<SQLite3RowValue> rowValuesList = new ArrayList<>();
+            try (Statement s = con.createStatement()) {
+                ResultSet randomRowValues;
+                try {
+                    randomRowValues = s.executeQuery(randomRows);
+                } catch (SQLException e) {
+                    throw new IgnoreMeException();
+                }
+
+                while (randomRowValues.next()) {
+                    Map<SQLite3Column, SQLite3Constant> values = new HashMap<>();
+                    for (int i = 0; i < getColumns().size(); i++) {
+                        SQLite3Column column = getColumns().get(i);
+                        int columnIndex = randomRowValues.findColumn(column.getTable().getName() + column.getName());
+                        assert columnIndex == i + 1;
+                        String typeString = randomRowValues.getString(columnIndex + getColumns().size());
+                        SQLite3DataType valueType = getColumnType(typeString);
+                        SQLite3Constant constant = getConstant(randomRowValues, columnIndex, valueType);
+                        values.put(column, constant);
+                    }
+                    rowValuesList.add(new SQLite3RowValue(this, values));
+                }
+                return rowValuesList;
+            }
+        }
+        public List<SQLite3RowValue> getRandomRowValuesFromSingleTable(SQLConnection con, int rowCount) throws SQLException {
+            List<SQLite3RowValue> rowValuesList = new ArrayList<>();
+            return rowValuesList;
+        }
+
+
     }
+
+
 
     public static class SQLite3Table extends AbstractRelationalTable<SQLite3Column, TableIndex, SQLite3GlobalState> {
         // TODO: why does the SQLite implementation have no table indexes?
@@ -211,6 +277,7 @@ public class SQLite3Schema extends AbstractSchema<SQLite3GlobalState, SQLite3Tab
             this.isReadOnly = isReadOnly;
         }
 
+//        public SQLite3PhantomTable
         public boolean hasWithoutRowid() {
             return withoutRowid;
         }

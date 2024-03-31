@@ -203,6 +203,11 @@ public abstract class SQLite3Expression {
         }
 
         @Override
+        public SQLite3Constant getExpectedValue() {
+            return super.getExpectedValue();
+        }
+
+        @Override
         public SQLite3CollateSequence getExplicitCollateSequence() {
             return null;
         }
@@ -1372,12 +1377,27 @@ public abstract class SQLite3Expression {
 
         private final SQLite3Column column;
         private final SQLite3Constant value;
+        private boolean useAlias;
+        private String alias;
 
         public SQLite3ColumnName(SQLite3Column name, SQLite3Constant value) {
             this.column = name;
             this.value = value;
         }
 
+        public void setUseAlias(boolean useAlias) {
+            this.useAlias = useAlias;
+        }
+
+        public boolean getUseAlias() {
+            return useAlias;
+        }
+        public void setAlias(String alias) {
+            this.alias = alias;
+        }
+        public String getAlias() {
+            return alias;
+        }
         public SQLite3Column getColumn() {
             return column;
         }

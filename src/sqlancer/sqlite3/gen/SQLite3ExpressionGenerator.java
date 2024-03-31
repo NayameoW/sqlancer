@@ -237,10 +237,6 @@ public class SQLite3ExpressionGenerator implements ExpressionGenerator<SQLite3Ex
     }
 
     public SQLite3Expression getRandomExpression(int depth) {
-        if (subqueriesOnly) {
-            return SQLite3RandomQuerySynthesizer.generate(globalState, 1);
-        }
-
         if (allowAggreates && Randomly.getBoolean()) {
             return getAggregateFunction(depth + 1);
         }
@@ -316,16 +312,6 @@ public class SQLite3ExpressionGenerator implements ExpressionGenerator<SQLite3Ex
             throw new AssertionError(randomExpressionType);
         }
     }
-
-    public SQLite3Expression generateRandomQueryWithSubquery() {
-        SQLite3Expression subquery = SQLite3RandomQuerySynthesizer.generate(globalState, 1);
-//        SQLite3Expression outerExpr = getAggregate(0, SQLite3AggregateFunction.getRandom());
-//        BinaryComparisonOperator op = BinaryComparisonOperator.getRandomRowValueOperator();
-//        String s = "(SELECT SUM(count) FROM (" + SQLite3Visitor.asString(subquery) + "))";
-//        return new BinaryComparisonOperation(outerExpr, new SQLite3Expression.Subquery(s), op);
-        return subquery;
-    }
-
 
     private SQLite3Expression getAndOrChain(int depth) {
         int num = Randomly.smallNumber() + 2;

@@ -4,14 +4,11 @@ import java.util.Arrays;
 
 import sqlancer.Randomly;
 import sqlancer.common.visitor.ToStringVisitor;
-import sqlancer.sqlite3.ast.SQLite3Aggregate;
+import sqlancer.sqlite3.ast.*;
 import sqlancer.sqlite3.ast.SQLite3Aggregate.SQLite3AggregateFunction;
 import sqlancer.sqlite3.ast.SQLite3Case.CasePair;
 import sqlancer.sqlite3.ast.SQLite3Case.SQLite3CaseWithBaseExpression;
 import sqlancer.sqlite3.ast.SQLite3Case.SQLite3CaseWithoutBaseExpression;
-import sqlancer.sqlite3.ast.SQLite3Cast;
-import sqlancer.sqlite3.ast.SQLite3Constant;
-import sqlancer.sqlite3.ast.SQLite3Expression;
 import sqlancer.sqlite3.ast.SQLite3Expression.BetweenOperation;
 import sqlancer.sqlite3.ast.SQLite3Expression.Cast;
 import sqlancer.sqlite3.ast.SQLite3Expression.CollateOperation;
@@ -27,12 +24,6 @@ import sqlancer.sqlite3.ast.SQLite3Expression.SQLite3TableReference;
 import sqlancer.sqlite3.ast.SQLite3Expression.SQLite3Text;
 import sqlancer.sqlite3.ast.SQLite3Expression.Subquery;
 import sqlancer.sqlite3.ast.SQLite3Expression.TypeLiteral;
-import sqlancer.sqlite3.ast.SQLite3Function;
-import sqlancer.sqlite3.ast.SQLite3RowValueExpression;
-import sqlancer.sqlite3.ast.SQLite3Select;
-import sqlancer.sqlite3.ast.SQLite3SetClause;
-import sqlancer.sqlite3.ast.SQLite3WindowFunction;
-import sqlancer.sqlite3.ast.SQLite3WindowFunctionExpression;
 import sqlancer.sqlite3.ast.SQLite3WindowFunctionExpression.SQLite3WindowFunctionFrameSpecBetween;
 import sqlancer.sqlite3.ast.SQLite3WindowFunctionExpression.SQLite3WindowFunctionFrameSpecTerm;
 
@@ -80,8 +71,17 @@ public class SQLite3ToStringVisitor extends ToStringVisitor<SQLite3Expression> i
     @Override
     public void visit(SQLite3ColumnName c) {
         if (fullyQualifiedNames && c.getColumn().getTable() != null) {
-            sb.append(c.getColumn().getTable().getName());
-            sb.append('.');
+            if (c.getUseAlias()) {
+                sb.append(c.getAlias());
+                sb.append('.');
+            } else if (c.getColumn().getUseAlias()) {
+                // add AS alias
+                sb.append(c.getColumn().getAlias());
+                sb.append('.');
+            } else {
+                sb.append(c.getColumn().getTable().getName());
+                sb.append('.');
+            }
         }
         sb.append(c.getColumn().getName());
     }
@@ -301,6 +301,37 @@ public class SQLite3ToStringVisitor extends ToStringVisitor<SQLite3Expression> i
     @Override
     public void visit(Subquery query) {
         sb.append(query.getQuery());
+    }
+
+    @Override
+    public void visit(SQLite3Subquery query) {
+        sb.append("SELECT ");
+        if (query.getColumnAliasMapping() != null) {
+            // add alias to column names
+            for (int i = 0; i < query.getFetchColumns().size(); i++) {
+                if (i != 0) {
+                    sb.append(", ");
+                }
+                visit(query.getFetchColumns().get(i));
+                sb.append(" AS ");
+                sb.append(query.getColumnAliasMapping().get(query.getFetchColumns().get(i)));
+            }
+        }
+        sb.append("FROM ");
+        for (int i = 0; i < query.getFromList().size(); i ++) {
+            sb.append("(");
+            visit(query.getFromList().get(i));
+            sb.append(")");
+//            if (query.getFromList().get(i) instanceof SQLite3Subquery) {
+//                sb.append("(");
+//                visit(query.getFromList().get(i));
+//                sb.append(")");
+//            } else {
+//                visit(query.getFromList().get(i));
+//            }
+        }
+        sb.append(" WHERE ");
+        visit(query.getWhereClause());
     }
 
     @Override

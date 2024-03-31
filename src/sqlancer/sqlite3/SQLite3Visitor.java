@@ -1,10 +1,8 @@
 package sqlancer.sqlite3;
 
-import sqlancer.sqlite3.ast.SQLite3Aggregate;
+import sqlancer.sqlite3.ast.*;
 import sqlancer.sqlite3.ast.SQLite3Case.SQLite3CaseWithBaseExpression;
 import sqlancer.sqlite3.ast.SQLite3Case.SQLite3CaseWithoutBaseExpression;
-import sqlancer.sqlite3.ast.SQLite3Constant;
-import sqlancer.sqlite3.ast.SQLite3Expression;
 import sqlancer.sqlite3.ast.SQLite3Expression.BetweenOperation;
 import sqlancer.sqlite3.ast.SQLite3Expression.BinaryComparisonOperation;
 import sqlancer.sqlite3.ast.SQLite3Expression.Cast;
@@ -24,13 +22,6 @@ import sqlancer.sqlite3.ast.SQLite3Expression.SQLite3Text;
 import sqlancer.sqlite3.ast.SQLite3Expression.Sqlite3BinaryOperation;
 import sqlancer.sqlite3.ast.SQLite3Expression.Subquery;
 import sqlancer.sqlite3.ast.SQLite3Expression.TypeLiteral;
-import sqlancer.sqlite3.ast.SQLite3Function;
-import sqlancer.sqlite3.ast.SQLite3RowValueExpression;
-import sqlancer.sqlite3.ast.SQLite3Select;
-import sqlancer.sqlite3.ast.SQLite3SetClause;
-import sqlancer.sqlite3.ast.SQLite3UnaryOperation;
-import sqlancer.sqlite3.ast.SQLite3WindowFunction;
-import sqlancer.sqlite3.ast.SQLite3WindowFunctionExpression;
 import sqlancer.sqlite3.ast.SQLite3WindowFunctionExpression.SQLite3WindowFunctionFrameSpecBetween;
 import sqlancer.sqlite3.ast.SQLite3WindowFunctionExpression.SQLite3WindowFunctionFrameSpecTerm;
 
@@ -101,6 +92,8 @@ public interface SQLite3Visitor {
     void visit(InOperation op);
 
     void visit(Subquery query);
+
+    void visit(SQLite3Subquery query);
 
     void visit(SQLite3Exist exist);
 

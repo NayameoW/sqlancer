@@ -129,6 +129,44 @@ public final class ComparatorHelper {
     }
 
     public static void assumeResultSetsAreEqual(List<String> resultSet, List<String> secondResultSet,
+                                                String originalQueryString, String flattenedQueryString, SQLGlobalState<?, ?> state) {
+        if (resultSet.size() != secondResultSet.size()) {
+            String queryFormatString = "-- %s;" + System.lineSeparator() + "-- cardinality: %d" + System.lineSeparator();
+            String firstQueryString = String.format(queryFormatString, originalQueryString, resultSet.size());
+            String secondQueryString = String.format(queryFormatString, flattenedQueryString, secondResultSet.size());
+            state.getState().getLocalState().log(String.format("%s" + System.lineSeparator() + "%s", firstQueryString, secondQueryString));
+            String assertionMessage = String.format(
+                    "The size of the result sets mismatch (%d and %d)!" + System.lineSeparator()
+                            + "First query: \"%s\", whose cardinality is: %d" + System.lineSeparator()
+                            + "Second query:\"%s\", whose cardinality is: %d",
+                    resultSet.size(), secondResultSet.size(), originalQueryString, resultSet.size(),
+                    flattenedQueryString, secondResultSet.size());
+            throw new AssertionError(assertionMessage);
+        }
+
+        Set<String> firstHashSet = new HashSet<>(resultSet);
+        Set<String> secondHashSet = new HashSet<>(secondResultSet);
+
+        boolean validateResultSizeOnly = state.getOptions().validateResultSizeOnly();
+        if (!validateResultSizeOnly && !firstHashSet.equals(secondHashSet)) {
+            Set<String> firstResultSetMisses = new HashSet<>(firstHashSet);
+            firstResultSetMisses.removeAll(secondHashSet);
+            Set<String> secondResultSetMisses = new HashSet<>(secondHashSet);
+            secondResultSetMisses.removeAll(firstHashSet);
+
+            String queryFormatString = "-- Query: \"%s\"; It misses: \"%s\"";
+            String firstQueryString = String.format(queryFormatString, originalQueryString, firstResultSetMisses);
+            String secondQueryString = String.format(queryFormatString, flattenedQueryString, secondResultSetMisses);
+            // update the SELECT queries to be logged at the bottom of the error log file
+            state.getState().getLocalState().log(String.format("%s" + System.lineSeparator() + "%s", firstQueryString, secondQueryString));
+            String assertionMessage = String.format("The content of the result sets mismatch!" + System.lineSeparator()
+                            + "First query : \"%s\"" + System.lineSeparator() + "Second query: \"%s\"", originalQueryString,
+                    secondQueryString);
+            throw new AssertionError(assertionMessage);
+        }
+    }
+
+    public static void assumeResultSetsAreEqual(List<String> resultSet, List<String> secondResultSet,
             String originalQueryString, List<String> combinedString, SQLGlobalState<?, ?> state,
             UnaryOperator<String> canonicalizationRule) {
         // Overloaded version of assumeResultSetsAreEqual that takes a canonicalization function which is applied to
