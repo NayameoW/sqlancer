@@ -67,7 +67,7 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
         selectQuery.setFetchColumns(fetchColumns);
         selectQuery.setFromList(fromList);
         MySQLOrderByTerm orderByTerm = new MySQLOrderByTerm(null, MySQLOrder.RAND);
-        selectQuery.setOrderByExpressions(Lists.newArrayList(orderByTerm));
+        selectQuery.setOrderByClauses(Lists.newArrayList(orderByTerm));
         MySQLLimit limit = new MySQLLimit(nr);
         selectQuery.setLimitClause(limit);
         return selectQuery;

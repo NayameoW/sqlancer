@@ -16,6 +16,7 @@ import sqlancer.mysql.oracle.MySQLDQPOracle;
 import sqlancer.mysql.oracle.MySQLFuzzer;
 import sqlancer.mysql.oracle.MySQLPivotedQuerySynthesisOracle;
 import sqlancer.mysql.oracle.MySQLTLPWhereOracle;
+import sqlancer.mysql.oracle.MySQLSubOracle;
 
 @Parameters(separators = "=", commandDescription = "MySQL (default port: " + MySQLOptions.DEFAULT_PORT
         + ", default host: " + MySQLOptions.DEFAULT_HOST + ")")
@@ -72,8 +73,6 @@ public class MySQLOptions implements DBMSSpecificOptions<MySQLOracleFactory> {
             public TestOracle<MySQLGlobalState> create(MySQLGlobalState globalState) throws Exception {
                 return new MySQLSubOracle(globalState);
             }
-        }
-        ;
         },
         DQP {
             @Override

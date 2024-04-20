@@ -163,7 +163,7 @@ public class SQLite3SubOracle extends SubBase<SQLite3GlobalState, SQLite3RowValu
 
         SQLite3Select selectStatement = new SQLite3Select();
 //        selectStatement.setSelectType(Randomly.fromOptions(SQLite3Select.SelectType.values()));
-        selectStatement.setFromTables(SQLite3Common.getTableRefs(tables, state.getSchema()));
+        selectStatement.setFromList(SQLite3Common.getTableRefs(tables, state.getSchema()));
 
         List<SQLite3Table> allTables = new ArrayList<>();
         allTables.addAll(tables);
@@ -196,7 +196,7 @@ public class SQLite3SubOracle extends SubBase<SQLite3GlobalState, SQLite3RowValu
 
         SQLite3Select selectStatement = new SQLite3Select();
 //        selectStatement.setSelectType(Randomly.fromOptions(SQLite3Select.SelectType.values()));
-        selectStatement.setFromTables(SQLite3Common.getTableRefs(tables, state.getSchema()));
+        selectStatement.setFromList(SQLite3Common.getTableRefs(tables, state.getSchema()));
 
         List<SQLite3Table> allTables = new ArrayList<>();
         allTables.addAll(tables);

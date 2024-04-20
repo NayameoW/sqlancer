@@ -19,6 +19,8 @@ import sqlancer.mysql.ast.MySQLStringExpression;
 import sqlancer.mysql.ast.MySQLTableReference;
 import sqlancer.mysql.ast.MySQLText;
 import sqlancer.mysql.ast.MySQLUnaryPostfixOperation;
+import sqlancer.mysql.ast.MySQLSubSelect;
+import sqlancer.mysql.ast.MySQLLimit;
 
 public interface MySQLVisitor {
 
