@@ -11,10 +11,7 @@ import sqlancer.DBMSSpecificOptions;
 import sqlancer.OracleFactory;
 import sqlancer.common.oracle.TestOracle;
 import sqlancer.mysql.MySQLOptions.MySQLOracleFactory;
-import sqlancer.mysql.oracle.MySQLCERTOracle;
-import sqlancer.mysql.oracle.MySQLFuzzer;
-import sqlancer.mysql.oracle.MySQLPivotedQuerySynthesisOracle;
-import sqlancer.mysql.oracle.MySQLTLPWhereOracle;
+import sqlancer.mysql.oracle.*;
 
 @Parameters(separators = "=", commandDescription = "MySQL (default port: " + MySQLOptions.DEFAULT_PORT
         + ", default host: " + MySQLOptions.DEFAULT_HOST + ")")
@@ -65,7 +62,14 @@ public class MySQLOptions implements DBMSSpecificOptions<MySQLOracleFactory> {
                 return new MySQLFuzzer(globalState);
             }
 
-        };
+        },
+        SUB {
+            @Override
+            public TestOracle<MySQLGlobalState> create(MySQLGlobalState globalState) throws Exception {
+                return new MySQLSubOracle(globalState);
+            }
+        }
+        ;
     }
 
     @Override

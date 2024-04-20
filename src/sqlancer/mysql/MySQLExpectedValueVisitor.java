@@ -1,23 +1,7 @@
 package sqlancer.mysql;
 
 import sqlancer.IgnoreMeException;
-import sqlancer.mysql.ast.MySQLBetweenOperation;
-import sqlancer.mysql.ast.MySQLBinaryComparisonOperation;
-import sqlancer.mysql.ast.MySQLBinaryLogicalOperation;
-import sqlancer.mysql.ast.MySQLBinaryOperation;
-import sqlancer.mysql.ast.MySQLCastOperation;
-import sqlancer.mysql.ast.MySQLCollate;
-import sqlancer.mysql.ast.MySQLColumnReference;
-import sqlancer.mysql.ast.MySQLComputableFunction;
-import sqlancer.mysql.ast.MySQLConstant;
-import sqlancer.mysql.ast.MySQLExists;
-import sqlancer.mysql.ast.MySQLExpression;
-import sqlancer.mysql.ast.MySQLInOperation;
-import sqlancer.mysql.ast.MySQLOrderByTerm;
-import sqlancer.mysql.ast.MySQLSelect;
-import sqlancer.mysql.ast.MySQLStringExpression;
-import sqlancer.mysql.ast.MySQLTableReference;
-import sqlancer.mysql.ast.MySQLUnaryPostfixOperation;
+import sqlancer.mysql.ast.*;
 
 public class MySQLExpectedValueVisitor implements MySQLVisitor {
 
@@ -90,6 +74,16 @@ public class MySQLExpectedValueVisitor implements MySQLVisitor {
         if (select.getWhereClause() != null) {
             visit(select.getWhereClause());
         }
+    }
+
+    @Override
+    public void visit(MySQLSubSelect subSelect) {
+
+    }
+
+    @Override
+    public void visit(MySQLLimit limit) {
+
     }
 
     @Override

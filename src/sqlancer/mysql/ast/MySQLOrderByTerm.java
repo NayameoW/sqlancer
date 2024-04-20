@@ -8,7 +8,7 @@ public class MySQLOrderByTerm implements MySQLExpression {
     private final MySQLExpression expr;
 
     public enum MySQLOrder {
-        ASC, DESC;
+        ASC, DESC, RAND;
 
         public static MySQLOrder getRandomOrder() {
             return Randomly.fromOptions(MySQLOrder.values());

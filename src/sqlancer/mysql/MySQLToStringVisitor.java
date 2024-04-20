@@ -5,24 +5,8 @@ import java.util.stream.Collectors;
 
 import sqlancer.Randomly;
 import sqlancer.common.visitor.ToStringVisitor;
-import sqlancer.mysql.ast.MySQLBetweenOperation;
-import sqlancer.mysql.ast.MySQLBinaryComparisonOperation;
-import sqlancer.mysql.ast.MySQLBinaryLogicalOperation;
-import sqlancer.mysql.ast.MySQLBinaryOperation;
-import sqlancer.mysql.ast.MySQLCastOperation;
-import sqlancer.mysql.ast.MySQLCollate;
-import sqlancer.mysql.ast.MySQLColumnReference;
-import sqlancer.mysql.ast.MySQLComputableFunction;
-import sqlancer.mysql.ast.MySQLConstant;
-import sqlancer.mysql.ast.MySQLExists;
-import sqlancer.mysql.ast.MySQLExpression;
-import sqlancer.mysql.ast.MySQLInOperation;
-import sqlancer.mysql.ast.MySQLOrderByTerm;
+import sqlancer.mysql.ast.*;
 import sqlancer.mysql.ast.MySQLOrderByTerm.MySQLOrder;
-import sqlancer.mysql.ast.MySQLSelect;
-import sqlancer.mysql.ast.MySQLStringExpression;
-import sqlancer.mysql.ast.MySQLTableReference;
-import sqlancer.mysql.ast.MySQLUnaryPostfixOperation;
 
 public class MySQLToStringVisitor extends ToStringVisitor<MySQLExpression> implements MySQLVisitor {
 
@@ -72,7 +56,13 @@ public class MySQLToStringVisitor extends ToStringVisitor<MySQLExpression> imple
             if (i != 0) {
                 sb.append(", ");
             }
+            if (s.getFromList().get(i) instanceof MySQLSelect) {
+                sb.append("(");
+            }
             visit(s.getFromList().get(i));
+            if (s.getFromList().get(i) instanceof MySQLSelect) {
+                sb.append(")");
+            }
         }
         for (MySQLExpression j : s.getJoinList()) {
             visit(j);
@@ -113,6 +103,52 @@ public class MySQLToStringVisitor extends ToStringVisitor<MySQLExpression> imple
             sb.append(" OFFSET ");
             visit(s.getOffsetClause());
         }
+    }
+
+    @Override
+    public void visit(MySQLSubSelect subSelect) {
+        sb.append("SELECT ");
+        switch (subSelect.getFromOptions()) {
+            case DISTINCT:
+                sb.append("DISTINCT ");
+                break;
+            case ALL:
+                sb.append(Randomly.fromOptions("ALL ", ""));
+                break;
+            case DISTINCTROW:
+                sb.append("DISTINCTROW ");
+                break;
+            default:
+                throw new AssertionError();
+        }
+
+        if (subSelect.getFetchColumns() == null) {
+            sb.append("*");
+        } else {
+        // process column names
+            for (int i = 0; i < subSelect.getFromList().size(); i++) {
+                if (i != 0) {
+                    sb.append(", ");
+                }
+                // check if subquery
+                if (subSelect.getFromList().get(i) instanceof MySQLSubSelect) {
+                    visit((MySQLSubSelect) subSelect.getFromList().get(i));
+                } else {
+                    visit(subSelect.getFromList().get(i));
+                }
+
+
+            }
+        }
+
+        sb.append(" FROM ");
+
+
+    }
+
+    @Override
+    public void visit(MySQLLimit limit) {
+        sb.append(limit.getLimit());
     }
 
     @Override
@@ -236,9 +272,13 @@ public class MySQLToStringVisitor extends ToStringVisitor<MySQLExpression> imple
 
     @Override
     public void visit(MySQLOrderByTerm op) {
-        visit(op.getExpr());
-        sb.append(" ");
-        sb.append(op.getOrder() == MySQLOrder.ASC ? "ASC" : "DESC");
+        if (op.getOrder() == MySQLOrder.RAND) {
+            sb.append("RAND() ");
+        } else {
+            visit(op.getExpr());
+            sb.append(" ");
+            sb.append(op.getOrder() == MySQLOrder.ASC ? "ASC" : "DESC");
+        }
     }
 
     @Override

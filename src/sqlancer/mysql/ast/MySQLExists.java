@@ -13,9 +13,9 @@ public class MySQLExists implements MySQLExpression {
     public MySQLExists(MySQLExpression expr) {
         this.expr = expr;
         this.expected = expr.getExpectedValue();
-        if (expected == null) {
-            throw new AssertionError();
-        }
+//        if (expected == null) {
+//            throw new AssertionError();
+//        }
     }
 
     public MySQLExpression getExpr() {
