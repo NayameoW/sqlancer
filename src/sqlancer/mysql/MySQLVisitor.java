@@ -1,6 +1,24 @@
 package sqlancer.mysql;
 
-import sqlancer.mysql.ast.*;
+import sqlancer.mysql.ast.MySQLBetweenOperation;
+import sqlancer.mysql.ast.MySQLBinaryComparisonOperation;
+import sqlancer.mysql.ast.MySQLBinaryLogicalOperation;
+import sqlancer.mysql.ast.MySQLBinaryOperation;
+import sqlancer.mysql.ast.MySQLCastOperation;
+import sqlancer.mysql.ast.MySQLCollate;
+import sqlancer.mysql.ast.MySQLColumnReference;
+import sqlancer.mysql.ast.MySQLComputableFunction;
+import sqlancer.mysql.ast.MySQLConstant;
+import sqlancer.mysql.ast.MySQLExists;
+import sqlancer.mysql.ast.MySQLExpression;
+import sqlancer.mysql.ast.MySQLInOperation;
+import sqlancer.mysql.ast.MySQLJoin;
+import sqlancer.mysql.ast.MySQLOrderByTerm;
+import sqlancer.mysql.ast.MySQLSelect;
+import sqlancer.mysql.ast.MySQLStringExpression;
+import sqlancer.mysql.ast.MySQLTableReference;
+import sqlancer.mysql.ast.MySQLText;
+import sqlancer.mysql.ast.MySQLUnaryPostfixOperation;
 
 public interface MySQLVisitor {
 
@@ -40,6 +58,10 @@ public interface MySQLVisitor {
 
     void visit(MySQLCollate collate);
 
+    void visit(MySQLJoin join);
+
+    void visit(MySQLText text);
+
     default void visit(MySQLExpression expr) {
         if (expr instanceof MySQLConstant) {
             visit((MySQLConstant) expr);
@@ -65,6 +87,8 @@ public interface MySQLVisitor {
             visit((MySQLOrderByTerm) expr);
         } else if (expr instanceof MySQLExists) {
             visit((MySQLExists) expr);
+        } else if (expr instanceof MySQLJoin) {
+            visit((MySQLJoin) expr);
         } else if (expr instanceof MySQLStringExpression) {
             visit((MySQLStringExpression) expr);
         } else if (expr instanceof MySQLBetweenOperation) {
@@ -73,6 +97,8 @@ public interface MySQLVisitor {
             visit((MySQLTableReference) expr);
         } else if (expr instanceof MySQLCollate) {
             visit((MySQLCollate) expr);
+        } else if (expr instanceof MySQLText) {
+            visit((MySQLText) expr);
         } else if (expr instanceof MySQLLimit) {
             visit((MySQLLimit) expr);
         } else {

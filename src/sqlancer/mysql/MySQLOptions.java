@@ -11,7 +11,11 @@ import sqlancer.DBMSSpecificOptions;
 import sqlancer.OracleFactory;
 import sqlancer.common.oracle.TestOracle;
 import sqlancer.mysql.MySQLOptions.MySQLOracleFactory;
-import sqlancer.mysql.oracle.*;
+import sqlancer.mysql.oracle.MySQLCERTOracle;
+import sqlancer.mysql.oracle.MySQLDQPOracle;
+import sqlancer.mysql.oracle.MySQLFuzzer;
+import sqlancer.mysql.oracle.MySQLPivotedQuerySynthesisOracle;
+import sqlancer.mysql.oracle.MySQLTLPWhereOracle;
 
 @Parameters(separators = "=", commandDescription = "MySQL (default port: " + MySQLOptions.DEFAULT_PORT
         + ", default host: " + MySQLOptions.DEFAULT_HOST + ")")
@@ -70,6 +74,13 @@ public class MySQLOptions implements DBMSSpecificOptions<MySQLOracleFactory> {
             }
         }
         ;
+        },
+        DQP {
+            @Override
+            public TestOracle<MySQLGlobalState> create(MySQLGlobalState globalState) throws SQLException {
+                return new MySQLDQPOracle(globalState);
+            }
+        };
     }
 
     @Override
