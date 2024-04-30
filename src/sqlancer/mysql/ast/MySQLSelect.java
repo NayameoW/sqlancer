@@ -10,6 +10,7 @@ public class MySQLSelect extends SelectBase<MySQLExpression> implements MySQLExp
     private SelectType fromOptions = SelectType.ALL;
     private List<String> modifiers = Collections.emptyList();
     private MySQLText hint;
+    private MySQLTableAlias tableAlias;
 
     public enum SelectType {
         DISTINCT, ALL, DISTINCTROW;
@@ -48,4 +49,11 @@ public class MySQLSelect extends SelectBase<MySQLExpression> implements MySQLExp
         return hint;
     }
 
+    public MySQLTableAlias getTableAlias() {
+        return tableAlias;
+    }
+
+    public void setTableAlias(MySQLTableAlias tableAlias) {
+        this.tableAlias = tableAlias;
+    }
 }

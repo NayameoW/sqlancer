@@ -5,28 +5,8 @@ import java.util.stream.Collectors;
 
 import sqlancer.Randomly;
 import sqlancer.common.visitor.ToStringVisitor;
-import sqlancer.mysql.ast.MySQLBetweenOperation;
-import sqlancer.mysql.ast.MySQLBinaryComparisonOperation;
-import sqlancer.mysql.ast.MySQLBinaryLogicalOperation;
-import sqlancer.mysql.ast.MySQLBinaryOperation;
-import sqlancer.mysql.ast.MySQLCastOperation;
-import sqlancer.mysql.ast.MySQLCollate;
-import sqlancer.mysql.ast.MySQLColumnReference;
-import sqlancer.mysql.ast.MySQLComputableFunction;
-import sqlancer.mysql.ast.MySQLConstant;
-import sqlancer.mysql.ast.MySQLExists;
-import sqlancer.mysql.ast.MySQLExpression;
-import sqlancer.mysql.ast.MySQLInOperation;
-import sqlancer.mysql.ast.MySQLJoin;
-import sqlancer.mysql.ast.MySQLOrderByTerm;
+import sqlancer.mysql.ast.*;
 import sqlancer.mysql.ast.MySQLOrderByTerm.MySQLOrder;
-import sqlancer.mysql.ast.MySQLSelect;
-import sqlancer.mysql.ast.MySQLStringExpression;
-import sqlancer.mysql.ast.MySQLTableReference;
-import sqlancer.mysql.ast.MySQLText;
-import sqlancer.mysql.ast.MySQLUnaryPostfixOperation;
-import sqlancer.mysql.ast.MySQLSubSelect;
-import sqlancer.mysql.ast.MySQLLimit;
 
 public class MySQLToStringVisitor extends ToStringVisitor<MySQLExpression> implements MySQLVisitor {
 
@@ -71,9 +51,9 @@ public class MySQLToStringVisitor extends ToStringVisitor<MySQLExpression> imple
                 }
                 visit(s.getFetchColumns().get(i));
                 // MySQL does not allow duplicate column names
-                sb.append(" AS ");
-                sb.append("ref");
-                sb.append(ref++);
+//                sb.append(" AS ");
+//                sb.append("ref");
+//                sb.append(ref++);
             }
         }
         sb.append(" FROM ");
@@ -91,6 +71,11 @@ public class MySQLToStringVisitor extends ToStringVisitor<MySQLExpression> imple
         }
         for (MySQLExpression j : s.getJoinList()) {
             visit(j);
+        }
+
+        if (s.getTableAlias() != null) {
+            sb.append(" AS ");
+            sb.append(s.getTableAlias().getTableName());
         }
 
         if (s.getWhereClause() != null) {
@@ -188,7 +173,30 @@ public class MySQLToStringVisitor extends ToStringVisitor<MySQLExpression> imple
 
     @Override
     public void visit(MySQLColumnReference column) {
-        sb.append(column.getColumn().getFullQualifiedName());
+        if (column.getAliasTable() != null) {
+            sb.append(column.getTableAliasName());
+            sb.append(".");
+            sb.append(column.getColumn().getName());
+        } else {
+            sb.append(column.getColumn().getFullQualifiedName());
+        }
+
+//        sb.append(column.getColumn().getFullQualifiedName());
+    }
+
+    @Override
+    public void visit(MySQLColumnExpression column) {
+        if (column.getTableAlias() == null) {
+            sb.append(column.getColumn().getTable().getName());
+        } else {
+            sb.append(column.getTableAlias());
+        }
+        sb.append(".");
+        if (column.getColumnAlias() == null) {
+            sb.append( column.getColumn().getName());
+        } else {
+            sb.append(column.getColumnAlias());
+        }
     }
 
     @Override

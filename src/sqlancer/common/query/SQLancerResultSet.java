@@ -1,6 +1,7 @@
 package sqlancer.common.query;
 
 import java.io.Closeable;
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -50,6 +51,18 @@ public class SQLancerResultSet implements Closeable {
         return rs.getLong(i);
     }
 
+    public float getFloat(int i) throws SQLException {
+        return rs.getFloat(i);
+    }
+
+    public double getDouble(int i) throws SQLException {
+        return rs.getDouble(i);
+    }
+
+    public BigDecimal getBigDecimal(int i) throws SQLException {
+        return rs.getBigDecimal(i);
+    }
+
     public String getType(int i) throws SQLException {
         return rs.getMetaData().getColumnTypeName(i);
     }
@@ -58,4 +71,8 @@ public class SQLancerResultSet implements Closeable {
         this.runnableEpilogue = runnableEpilogue;
     }
 
+
+    public int getColumnIndex(String columnLabel) throws Exception {
+        return rs.findColumn(columnLabel);
+    }
 }

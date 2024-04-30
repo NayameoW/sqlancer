@@ -10,33 +10,21 @@ import sqlancer.mysql.MySQLBugs;
 import sqlancer.mysql.MySQLGlobalState;
 import sqlancer.mysql.MySQLSchema.MySQLColumn;
 import sqlancer.mysql.MySQLSchema.MySQLRowValue;
-import sqlancer.mysql.ast.MySQLBetweenOperation;
-import sqlancer.mysql.ast.MySQLBinaryComparisonOperation;
+import sqlancer.mysql.MySQLSchema.MySQLTable;
+import sqlancer.mysql.ast.*;
 import sqlancer.mysql.ast.MySQLBinaryComparisonOperation.BinaryComparisonOperator;
-import sqlancer.mysql.ast.MySQLBinaryLogicalOperation;
 import sqlancer.mysql.ast.MySQLBinaryLogicalOperation.MySQLBinaryLogicalOperator;
-import sqlancer.mysql.ast.MySQLBinaryOperation;
 import sqlancer.mysql.ast.MySQLBinaryOperation.MySQLBinaryOperator;
-import sqlancer.mysql.ast.MySQLCastOperation;
-import sqlancer.mysql.ast.MySQLColumnReference;
-import sqlancer.mysql.ast.MySQLComputableFunction;
 import sqlancer.mysql.ast.MySQLComputableFunction.MySQLFunction;
-import sqlancer.mysql.ast.MySQLConstant;
 import sqlancer.mysql.ast.MySQLConstant.MySQLDoubleConstant;
-import sqlancer.mysql.ast.MySQLExists;
-import sqlancer.mysql.ast.MySQLExpression;
-import sqlancer.mysql.ast.MySQLInOperation;
-import sqlancer.mysql.ast.MySQLOrderByTerm;
 import sqlancer.mysql.ast.MySQLOrderByTerm.MySQLOrder;
-import sqlancer.mysql.ast.MySQLStringExpression;
-import sqlancer.mysql.ast.MySQLUnaryPostfixOperation;
-import sqlancer.mysql.ast.MySQLUnaryPrefixOperation;
 import sqlancer.mysql.ast.MySQLUnaryPrefixOperation.MySQLUnaryPrefixOperator;
 
 public class MySQLExpressionGenerator extends UntypedExpressionGenerator<MySQLExpression, MySQLColumn> {
 
     private final MySQLGlobalState state;
     private MySQLRowValue rowVal;
+    private MySQLTable aliasTable;
 
     public MySQLExpressionGenerator(MySQLGlobalState state) {
         this.state = state;
@@ -44,6 +32,11 @@ public class MySQLExpressionGenerator extends UntypedExpressionGenerator<MySQLEx
 
     public MySQLExpressionGenerator setRowVal(MySQLRowValue rowVal) {
         this.rowVal = rowVal;
+        return this;
+    }
+
+    public MySQLExpressionGenerator setAliasTable(MySQLTable table) {
+        this.aliasTable = table;
         return this;
     }
 
@@ -111,7 +104,7 @@ public class MySQLExpressionGenerator extends UntypedExpressionGenerator<MySQLEx
         if (Randomly.getBoolean()) {
             return new MySQLExists(new MySQLStringExpression("SELECT 1", MySQLConstant.createTrue()));
         } else {
-            return new MySQLExists(new MySQLStringExpression("SELECT 1 wHERE FALSE", MySQLConstant.createFalse()));
+            return new MySQLExists(new MySQLStringExpression("SELECT 1 WHERE FALSE", MySQLConstant.createFalse()));
         }
     }
 
@@ -170,7 +163,11 @@ public class MySQLExpressionGenerator extends UntypedExpressionGenerator<MySQLEx
         } else {
             val = rowVal.getValues().get(c);
         }
-        return MySQLColumnReference.create(c, val);
+        if (aliasTable != null) {
+            return MySQLColumnReference.createAlias(c, aliasTable);
+        } else {
+            return MySQLColumnReference.create(c, val);
+        }
     }
 
     @Override

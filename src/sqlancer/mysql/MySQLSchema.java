@@ -200,6 +200,8 @@ public class MySQLSchema extends AbstractSchema<MySQLGlobalState, MySQLTable> {
 
     }
 
+
+
     public static final class MySQLIndex extends TableIndex {
 
         private MySQLIndex(String indexName) {

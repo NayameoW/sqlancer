@@ -1,5 +1,6 @@
 package sqlancer.mysql.ast;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 
 import sqlancer.IgnoreMeException;
@@ -56,6 +57,22 @@ public abstract class MySQLConstant implements MySQLExpression {
 
     }
 
+    public static class MySQLFloatConstant extends MySQLNoPQSConstant {
+        private final float val;
+
+        public MySQLFloatConstant(float val) {
+            this.val = val;
+            if (Float.isInfinite(val) || Float.isNaN(val)) {
+                throw new IgnoreMeException();
+            }
+        }
+
+        @Override
+        public String getTextRepresentation() {
+            return String.valueOf(val);
+        }
+    }
+
     public static class MySQLDoubleConstant extends MySQLNoPQSConstant {
 
         private final double val;
@@ -73,6 +90,19 @@ public abstract class MySQLConstant implements MySQLExpression {
             return String.valueOf(val);
         }
 
+    }
+
+    public static class MySQLDecimalConstant extends MySQLNoPQSConstant {
+        private final BigDecimal val;
+
+        public MySQLDecimalConstant(BigDecimal val) {
+            this.val = val;
+        }
+
+        @Override
+        public String getTextRepresentation() {
+            return String.valueOf(val);
+        }
     }
 
     public static class MySQLTextConstant extends MySQLConstant {
@@ -411,6 +441,18 @@ public abstract class MySQLConstant implements MySQLExpression {
 
     public static MySQLConstant createIntConstantNotAsBoolean(long value) {
         return new MySQLIntConstant(value, String.valueOf(value));
+    }
+
+    public static MySQLConstant createFloatConstant(float value) {
+        return new MySQLFloatConstant(value);
+    }
+
+    public static MySQLConstant createDoubleConstant(double value) {
+        return new MySQLDoubleConstant(value);
+    }
+
+    public static MySQLConstant createDecimalConstant(BigDecimal value) {
+        return new MySQLDecimalConstant(value);
     }
 
     @Override
