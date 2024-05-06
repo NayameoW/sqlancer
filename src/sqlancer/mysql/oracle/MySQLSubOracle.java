@@ -23,7 +23,6 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
 
     private final MySQLSchema s;
     private Reproducer<MySQLGlobalState> reproducer;
-    private OracleRunReproductionState localState;
     private List<MySQLExpression> fetchColumns;
     private MySQLExpressionGenerator gen;
 
@@ -56,29 +55,45 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
 
         MySQLSelect testSubquery;
 
-        switch (Randomly.fromOptions(SubqueryType.SCALAR, SubqueryType.EXISTS, SubqueryType.IN)) {
-            case SCALAR:
-                testSubquery = generateScalarSubquery(fromList, columns);
-                MySQLSelect scalarSubquery1 = generateScalarSubquery(fromList, columns);
-                MySQLSelect scalarSubquery2 = generateScalarSubquery(fromList, columns);
-                MySQLExpression whereClause = new MySQLBinaryComparisonOperation(scalarSubquery1, scalarSubquery2, BinaryComparisonOperator.GREATER_EQUALS);
-                testSubquery.setWhereClause(whereClause);
-                MySQLSubquerySupervisor supervisor = new MySQLSubquerySupervisor(testSubquery, state);
-                supervisor.checkQuery();
-                break;
-            case EXISTS:
-                testSubquery = generateExistQuery(fromList);
-                break;
-            case IN:
-                testSubquery = generateInQuery(fromList);
-                break;
-            default:
-                throw new AssertionError();
-        }
+//        switch (Randomly.fromOptions(SubqueryType.SCALAR, SubqueryType.EXISTS, SubqueryType.IN)) {
+//            case SCALAR:
+//                testSubquery = generateWhereSubquery(fromList, columns);
+//                break;
+//            case EXISTS:
+//                testSubquery = generateExistQuery(fromList);
+//                break;
+//            case IN:
+//                testSubquery = generateInQuery(fromList);
+//                break;
+//            default:
+//                throw new AssertionError();
+//        }
+        testSubquery = generateWhereSubquery(fromList, columns);
+
+        MySQLSubqueryTreeNode rootNode = generateSubqueryTree(testSubquery);
+        MySQLTemporaryTableManager manager = new MySQLTemporaryTableManager();
+        String testString = manager.createTemporaryTableStatement(rootNode, "tempTable1");
+        String testString2 = manager.generateInsertStatements(rootNode, "tempTable2");
+
+        MySQLSubqueryTreeNodeVisitor visitor = new MySQLSubqueryTreeNodeVisitor();
+        visitor.visit(rootNode);
 
         if (state.getOptions().logEachSelect()) {
-            logger.writeCurrent(MySQLVisitor.asString(testSubquery));
+//            logger.writeCurrent(MySQLVisitor.asString(testSubquery));
+//            logger.writeCurrent(testString);
+//            logger.writeCurrent(testString2);
+            if (rootNode.getCreateTableSQL() != null) {
+                logger.writeCurrent(rootNode.getCreateTableSQL());
+            }
+            if (rootNode.getInsertValuesSQL() != null) {
+                logger.writeCurrent(rootNode.getInsertValuesSQL());
+            }
         }
+
+        // testing oracle
+
+
+        dropAllTempTables();
 
     }
 
@@ -127,13 +142,13 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
         rowSubquery.setLimitClause(limit);
         rowSubquery.setTableAlias(new MySQLTableAlias(vTable1));
 
-//        if (Randomly.getBoolean()) {
-        MySQLTable vTable2 = new MySQLTable("st0", columns, null, null);
-        MySQLExpressionGenerator generator = new MySQLExpressionGenerator(state).setColumns(columns);
-        generator.setAliasTable(vTable2);
-        MySQLExpression whereClause = generator.generateExpression();
-        rowSubquery.setWhereClause(whereClause);
-//        }
+        if (Randomly.getBoolean()) {
+            MySQLTable vTable2 = new MySQLTable("st0", columns, null, null);
+            MySQLExpressionGenerator generator = new MySQLExpressionGenerator(state).setColumns(columns);
+            generator.setAliasTable(vTable2);
+            MySQLExpression whereClause = generator.generateExpression();
+            rowSubquery.setWhereClause(whereClause);
+        }
 
         return rowSubquery;
     }
@@ -159,7 +174,7 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
     }
 
     private MySQLSelect generateWhereSubquery(List<MySQLExpression> fromList, List<MySQLColumn> columns) {
-        MySQLSelect selectQuery = new MySQLSelect();
+        MySQLSelect selectQuery = generateScalarSubquery(fromList, columns);
         MySQLSelect scalarSubquery1 = generateScalarSubquery(fromList, columns);
         MySQLSelect scalarSubquery2 = generateScalarSubquery(fromList, columns);
         MySQLExpression whereClause = new MySQLBinaryComparisonOperation(scalarSubquery1, scalarSubquery2, BinaryComparisonOperator.GREATER_EQUALS);
@@ -179,6 +194,36 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
         return selectQuery;
     }
 
+    private MySQLSelect generateJoinSubquery(List<MySQLExpression> fromList, List<MySQLExpression> joinList) {
+
+        return new MySQLSelect();
+    }
+
+    private MySQLSubqueryTreeNode generateSubqueryTree(MySQLSelect subquery) {
+        MySQLSubqueryTreeNode rootNode = new MySQLSubqueryTreeNode(subquery, state);
+
+        for (MySQLExpression fromClause : subquery.getFromList()) {
+            if (fromClause instanceof MySQLSelect) {
+                rootNode.setFromNode(generateSubqueryTree((MySQLSelect) fromClause));
+            }
+        }
+
+        if (subquery.getWhereClause() instanceof MySQLBinaryComparisonOperation) {
+            MySQLBinaryComparisonOperation whereClause = (MySQLBinaryComparisonOperation) subquery.getWhereClause();
+            if (whereClause.getLeft() instanceof MySQLSelect) {
+                rootNode.addWhereSubquery(generateSubqueryTree((MySQLSelect) whereClause.getLeft()));
+            }
+            if (whereClause.getRight() instanceof MySQLSelect) {
+                rootNode.addWhereSubquery(generateSubqueryTree((MySQLSelect) whereClause.getRight()));
+            }
+        }
+
+        return rootNode;
+    }
+
+    private void dropAllTempTables() {
+
+    }
 
     @Override
     public Reproducer<MySQLGlobalState> getLastReproducer() {

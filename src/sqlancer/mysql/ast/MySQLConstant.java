@@ -71,6 +71,11 @@ public abstract class MySQLConstant implements MySQLExpression {
         public String getTextRepresentation() {
             return String.valueOf(val);
         }
+
+        @Override
+        public MySQLDataType getType() {
+            return MySQLDataType.FLOAT;
+        }
     }
 
     public static class MySQLDoubleConstant extends MySQLNoPQSConstant {
@@ -90,6 +95,11 @@ public abstract class MySQLConstant implements MySQLExpression {
             return String.valueOf(val);
         }
 
+        @Override
+        public MySQLDataType getType() {
+            return MySQLDataType.DOUBLE;
+        }
+
     }
 
     public static class MySQLDecimalConstant extends MySQLNoPQSConstant {
@@ -102,6 +112,11 @@ public abstract class MySQLConstant implements MySQLExpression {
         @Override
         public String getTextRepresentation() {
             return String.valueOf(val);
+        }
+
+        @Override
+        public MySQLDataType getType() {
+            return MySQLDataType.DECIMAL;
         }
     }
 

@@ -9,7 +9,6 @@ import sqlancer.mysql.ast.MySQLExpression;
 import sqlancer.mysql.ast.MySQLSelect;
 import sqlancer.common.query.Query;
 import sqlancer.mysql.MySQLSchema.MySQLColumn;
-import sqlancer.mysql.MySQLSchema.MySQLTable;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -30,7 +29,7 @@ public class MySQLSubquerySupervisor {
         this.columns = selectQuery.getFetchColumns();
     }
 
-    public Map<Integer, Map<MySQLColumn, MySQLConstant>> checkQuery() {
+    public Map<Integer, Map<MySQLColumn, MySQLConstant>> getResult() {
         String queryString = MySQLVisitor.asString(selectQuery);
         Query<SQLConnection> queryAdapter = new SQLQueryAdapter(queryString);
         Map<Integer, Map<MySQLColumn, MySQLConstant>> queryResults = new HashMap<>();
@@ -95,7 +94,7 @@ public class MySQLSubquerySupervisor {
         }
         return columnList;
     }
-//
+
 //    private MySQLTable createTemporaryTable() {
 //
 //        return new MySQLTable();
