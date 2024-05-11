@@ -1,9 +1,15 @@
 package sqlancer.mysql;
 
+import com.google.common.collect.Lists;
+import sqlancer.mysql.ast.MySQLExpression;
+import sqlancer.mysql.ast.MySQLSelect;
+import sqlancer.mysql.MySQLSchema.MySQLTable;
+import sqlancer.mysql.ast.MySQLTableReference;
+
 public class MySQLSubqueryTreeNodeVisitor {
 
     private MySQLTemporaryTableManager manager = new MySQLTemporaryTableManager();
-    private int tableCount = 0;
+    private static int tableCount = 0;
 
     public void visit(MySQLSubqueryTreeNode node) {
         if (node == null) {
@@ -33,10 +39,30 @@ public class MySQLSubqueryTreeNodeVisitor {
             String insertValuesSQL = fromSubquery.getInsertValuesSQL();
             node.setCreateTableSQL(node.getCreateTableSQL() + createTableSQL);
             node.setInsertValuesSQL(node.getInsertValuesSQL() + insertValuesSQL);
-
         }
 
 
+    }
+
+    public static void clearTableCount() {
+        tableCount = 0;
+    }
+
+    private void flattenNodeSubquery(MySQLSubqueryTreeNode node) {
+        // leaf node: can be converted to a temporary table
+        if (node.getFromSubquery() == null && node.getWhereSubqueries().isEmpty()) {
+            MySQLTable tempTable = new MySQLTable("tempTable" + node.getNodeNum(), null, null, null);
+            MySQLTableReference tableReference = new MySQLTableReference(tempTable);
+            node.setFlattenedQuery(tableReference);
+        }
+
+        if (node.getFromSubquery() != null) {
+            MySQLSelect flattenedQuery = new MySQLSelect();
+            MySQLExpression flattenedNode = node.getFlattenedQuery();
+            flattenedQuery.setFromList(Lists.asList(flattenedNode));
+            node.setFlattenedQuery(flattenedQuery);
+        }
 
     }
+
 }

@@ -1,6 +1,7 @@
 package sqlancer.mysql;
 
 import sqlancer.mysql.ast.MySQLConstant;
+import sqlancer.mysql.ast.MySQLExpression;
 import sqlancer.mysql.ast.MySQLSelect;
 import sqlancer.mysql.MySQLSchema.MySQLColumn;
 
@@ -24,6 +25,11 @@ public class MySQLSubqueryTreeNode {
 
     private String createTableSQL;
     private String insertValuesSQL;
+
+    private String createViewSQL;
+
+    private MySQLExpression flattenedQuery;
+
 
     public MySQLSubqueryTreeNode(MySQLSelect subquery, MySQLGlobalState globalState) {
         this.subquery = subquery;
@@ -70,10 +76,22 @@ public class MySQLSubqueryTreeNode {
     }
 
     public String getCreateTableSQL() {
-        return createTableSQL;
+        return createTableSQL == null ? "" : createTableSQL;
     }
 
     public String getInsertValuesSQL() {
-        return insertValuesSQL;
+        return insertValuesSQL == null ? "" : insertValuesSQL;
+    }
+
+    public int getNodeNum() {
+        return nodeNum;
+    }
+
+    public void setFlattenedQuery(MySQLExpression flattenedQuery) {
+        this.flattenedQuery = flattenedQuery;
+    }
+
+    public MySQLExpression getFlattenedQuery() {
+        return flattenedQuery;
     }
 }

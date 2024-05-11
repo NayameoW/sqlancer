@@ -7,6 +7,9 @@ import sqlancer.SQLConnection;
 import sqlancer.StateToReproduce.OracleRunReproductionState;
 import sqlancer.common.oracle.SubBase;
 import sqlancer.common.oracle.TestOracle;
+import sqlancer.common.query.Query;
+import sqlancer.common.query.SQLQueryAdapter;
+import sqlancer.common.query.SQLancerResultSet;
 import sqlancer.mysql.*;
 import sqlancer.mysql.MySQLSchema.*;
 import sqlancer.mysql.ast.*;
@@ -17,6 +20,7 @@ import sqlancer.mysql.ast.MySQLBinaryComparisonOperation.BinaryComparisonOperato
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MySQLExpression, SQLConnection> implements TestOracle<MySQLGlobalState> {
@@ -72,8 +76,8 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
 
         MySQLSubqueryTreeNode rootNode = generateSubqueryTree(testSubquery);
         MySQLTemporaryTableManager manager = new MySQLTemporaryTableManager();
-        String testString = manager.createTemporaryTableStatement(rootNode, "tempTable1");
-        String testString2 = manager.generateInsertStatements(rootNode, "tempTable2");
+//        String testString = manager.createTemporaryTableStatement(rootNode, "tempTable1");
+//        String testString2 = manager.generateInsertStatements(rootNode, "tempTable2");
 
         MySQLSubqueryTreeNodeVisitor visitor = new MySQLSubqueryTreeNodeVisitor();
         visitor.visit(rootNode);
@@ -82,6 +86,7 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
 //            logger.writeCurrent(MySQLVisitor.asString(testSubquery));
 //            logger.writeCurrent(testString);
 //            logger.writeCurrent(testString2);
+            logger.writeCurrent(String.valueOf(rootNode.getNodeNum()));
             if (rootNode.getCreateTableSQL() != null) {
                 logger.writeCurrent(rootNode.getCreateTableSQL());
             }
@@ -91,10 +96,20 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
         }
 
         // testing oracle
+        //
+
+        // execute flattened queries
+        Query<SQLConnection> queryAdapter = new SQLQueryAdapter(rootNode.getCreateTableSQL());
+
+//        try (SQLancerResultSet result = queryAdapter.executeAndGet(state)) {
+//
+//        } catch (Exception e) {
+//            throw new AssertionError(e);
+//        }
 
 
-        dropAllTempTables();
-
+        dropAllTempTables(rootNode.getNodeNum());
+        visitor.clearTableCount();
     }
 
     private MySQLSelect generateRandomSelect(List<MySQLExpression> fromList, int nr) {
@@ -221,8 +236,12 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
         return rootNode;
     }
 
-    private void dropAllTempTables() {
-
+    private void dropAllTempTables(int tableCount) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < tableCount; i ++) {
+            sb.append("DROP TABLE tempTable").append(i);
+            sb.append(";");
+        }
     }
 
     @Override
