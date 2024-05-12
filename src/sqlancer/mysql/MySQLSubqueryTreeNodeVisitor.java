@@ -48,7 +48,7 @@ public class MySQLSubqueryTreeNodeVisitor {
         tableCount = 0;
     }
 
-    private void flattenNodeSubquery(MySQLSubqueryTreeNode node) {
+    public void flattenNodeSubquery(MySQLSubqueryTreeNode node) {
         // leaf node: can be converted to a temporary table
         if (node.getFromSubquery() == null && node.getWhereSubqueries().isEmpty()) {
             MySQLTable tempTable = new MySQLTable("tempTable" + node.getNodeNum(), null, null, null);
@@ -59,8 +59,16 @@ public class MySQLSubqueryTreeNodeVisitor {
         if (node.getFromSubquery() != null) {
             MySQLSelect flattenedQuery = new MySQLSelect();
             MySQLExpression flattenedNode = node.getFlattenedQuery();
-            flattenedQuery.setFromList(Lists.asList(flattenedNode));
+            flattenedQuery.setFromList();
             node.setFlattenedQuery(flattenedQuery);
+        }
+
+        if (! node.getWhereSubqueries().isEmpty()) {
+            MySQLExpression leftNodeExpression = node.getWhereSubqueries().get(0).getFlattenedQuery();
+            MySQLExpression rightNodeExpression = node.getWhereSubqueries().get(1).getFlattenedQuery();
+            String leftNodeString = MySQLVisitor.asString(leftNodeExpression);
+            String rightNodeString = MySQLVisitor.asString(rightNodeExpression);
+
         }
 
     }
