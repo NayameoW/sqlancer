@@ -101,6 +101,8 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
         // execute flattened queries
         Query<SQLConnection> queryAdapter = new SQLQueryAdapter(rootNode.getCreateTableSQL());
 
+        visitor.flattenNodeSubquery(rootNode);
+
 //        try (SQLancerResultSet result = queryAdapter.executeAndGet(state)) {
 //
 //        } catch (Exception e) {
