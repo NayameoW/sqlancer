@@ -18,6 +18,7 @@ public class MySQLSubqueryTreeNode {
     private int nodeNum;
     private List<MySQLSubqueryTreeNode> whereSubqueries;
     private MySQLSubqueryTreeNode fromSubquery;
+    private MySQLSubqueryTreeNode ExistsSubquery;
 
     private MySQLSelect subquery;
     private MySQLGlobalState state;
