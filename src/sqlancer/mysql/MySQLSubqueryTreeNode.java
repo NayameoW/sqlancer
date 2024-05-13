@@ -16,7 +16,7 @@ import java.util.List;
 public class MySQLSubqueryTreeNode {
 
     private int nodeNum;
-    private List<MySQLSubqueryTreeNode> whereSubqueries;
+    private List<MySQLSubqueryTreeNode> whereComparisonSubquery;
     private MySQLSubqueryTreeNode fromSubquery;
     private MySQLSubqueryTreeNode ExistsSubquery;
 
@@ -35,7 +35,7 @@ public class MySQLSubqueryTreeNode {
     public MySQLSubqueryTreeNode(MySQLSelect subquery, MySQLGlobalState globalState) {
         this.subquery = subquery;
         this.state = globalState;
-        this.whereSubqueries = new ArrayList<>();
+        this.whereComparisonSubquery = new ArrayList<>();
         this.subqueryResult = executeSubquery(subquery, globalState);
     }
 
@@ -44,7 +44,11 @@ public class MySQLSubqueryTreeNode {
     }
 
     public void addWhereSubquery(MySQLSubqueryTreeNode whereSubquery) {
-        this.whereSubqueries.add(whereSubquery);
+        this.whereComparisonSubquery.add(whereSubquery);
+    }
+
+    public void addExistsSubquery(MySQLSubqueryTreeNode ExistsSubquery) {
+        this.ExistsSubquery = ExistsSubquery;
     }
 
     public Map<Integer, Map<MySQLColumn, MySQLConstant>> executeSubquery(MySQLSelect subquery, MySQLGlobalState state) {
@@ -60,8 +64,8 @@ public class MySQLSubqueryTreeNode {
         return fromSubquery;
     }
 
-    public List<MySQLSubqueryTreeNode> getWhereSubqueries() {
-        return whereSubqueries;
+    public List<MySQLSubqueryTreeNode> getWhereComparisonSubquery() {
+        return whereComparisonSubquery;
     }
 
     public void setNodeNum(int nodeNum) {
@@ -82,6 +86,10 @@ public class MySQLSubqueryTreeNode {
 
     public String getInsertValuesSQL() {
         return insertValuesSQL == null ? "" : insertValuesSQL;
+    }
+
+    public MySQLSelect getSubquery() {
+        return subquery;
     }
 
     public int getNodeNum() {

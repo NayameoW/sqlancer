@@ -73,6 +73,7 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
 //                throw new AssertionError();
 //        }
         testSubquery = generateWhereSubquery(fromList, columns);
+//        testSubquery = generateScalarSubquery(fromList, columns);
 
         MySQLSubqueryTreeNode rootNode = generateSubqueryTree(testSubquery);
         MySQLTemporaryTableManager manager = new MySQLTemporaryTableManager();
@@ -83,16 +84,17 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
         visitor.visit(rootNode);
 
         if (state.getOptions().logEachSelect()) {
-//            logger.writeCurrent(MySQLVisitor.asString(testSubquery));
+            logger.writeCurrent(MySQLVisitor.asString(testSubquery));
 //            logger.writeCurrent(testString);
 //            logger.writeCurrent(testString2);
-            logger.writeCurrent(String.valueOf(rootNode.getNodeNum()));
-            if (rootNode.getCreateTableSQL() != null) {
-                logger.writeCurrent(rootNode.getCreateTableSQL());
-            }
-            if (rootNode.getInsertValuesSQL() != null) {
-                logger.writeCurrent(rootNode.getInsertValuesSQL());
-            }
+//            logger.writeCurrent(String.valueOf(rootNode.getNodeNum()));
+//            if (rootNode.getCreateTableSQL() != null) {
+//                logger.writeCurrent(rootNode.getCreateTableSQL());
+//            }
+//            if (rootNode.getInsertValuesSQL() != null) {
+//                logger.writeCurrent(rootNode.getInsertValuesSQL());
+//            }
+            logger.writeCurrent(visitor.getTestString());
         }
 
         // testing oracle
@@ -101,7 +103,6 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
         // execute flattened queries
         Query<SQLConnection> queryAdapter = new SQLQueryAdapter(rootNode.getCreateTableSQL());
 
-        visitor.flattenNodeSubquery(rootNode);
 
 //        try (SQLancerResultSet result = queryAdapter.executeAndGet(state)) {
 //
@@ -111,7 +112,6 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
 
 
         dropAllTempTables(rootNode.getNodeNum());
-        visitor.clearTableCount();
     }
 
     private MySQLSelect generateRandomSelect(List<MySQLExpression> fromList, int nr) {
