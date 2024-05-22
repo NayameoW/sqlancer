@@ -3,6 +3,7 @@ package sqlancer.mysql;
 import sqlancer.mysql.ast.MySQLConstant;
 import sqlancer.mysql.ast.MySQLSelect;
 import sqlancer.mysql.MySQLSchema.MySQLColumn;
+import sqlancer.mysql.MySQLSchema.MySQLDataType;
 
 import java.util.Set;
 import java.util.Map;
@@ -11,7 +12,7 @@ import java.util.Map.Entry;
 public class MySQLTemporaryTableManager {
 
     public String createTemporaryTableStatement(MySQLSubqueryTreeNode node, String tableName) {
-        StringBuilder createStatement = new StringBuilder("CREATE TEMPORARY TABLE " + tableName + " (");
+        StringBuilder createStatement = new StringBuilder("CREATE TABLE " + tableName + " (");
         if (!node.getSubqueryResult().isEmpty()) {
             Set<Entry<MySQLColumn, MySQLConstant>> entrySet = node.getSubqueryResult().values().iterator().next().entrySet();
             boolean first = true;
@@ -20,7 +21,7 @@ public class MySQLTemporaryTableManager {
                     createStatement.append(", ");
                 }
                 MySQLColumn column = entry.getKey();
-                createStatement.append(column.getName() + " " + entry.getValue().getType());
+                createStatement.append(column.getName() + " " + getTypeFromConstant(column.getType()));
                 first = false;
             }
         } else {
@@ -30,8 +31,8 @@ public class MySQLTemporaryTableManager {
         return createStatement.toString();
     }
 
-    private String getTypeFromConstant(MySQLConstant constant) {
-        switch (constant.getType()) {
+    private String getTypeFromConstant(MySQLDataType type) {
+        switch (type) {
             case INT:
                 return "INT";
             case VARCHAR:
@@ -43,7 +44,7 @@ public class MySQLTemporaryTableManager {
             case DECIMAL:
                 return "DECIMAL";
             default:
-                throw new IllegalArgumentException("Unsupported type: " + constant.getType());
+                throw new IllegalArgumentException("Unsupported type: " + type);
         }
     }
 
@@ -84,4 +85,48 @@ public class MySQLTemporaryTableManager {
                 return constant.toString();
         }
     }
+
+//    public String createWithStatement(MySQLSubqueryTreeNode node, String tableName) {
+//        StringBuilder withStatement = new StringBuilder("WITH " + tableName + " AS (");
+//        if (!node.getSubqueryResult().isEmpty()) {
+//            withStatement.append("SELECT ");
+//            Set<Entry<MySQLColumn, MySQLConstant>> entrySet = node.getSubqueryResult().values().iterator().next().entrySet();
+//            boolean first = true;
+//            for (Entry<MySQLColumn, MySQLConstant> entry : entrySet) {
+//                if (!first) {
+//                    withStatement.append(", ");
+//                }
+//                MySQLColumn column = entry.getKey();
+//                if (entry.getValue().getType() != null) {
+//                    withStatement.append(entry.getValue().getSQLRepresentation() + " AS " + column.getName());
+//                } else {
+//                    withStatement.append("NULL AS " + column.getName());
+//                }
+//                first = false;
+//            }
+//            withStatement.append(" UNION ALL ");
+//            int rowCount = 0;
+//            for (Map<MySQLColumn, MySQLConstant> row : node.getSubqueryResult().values()) {
+//                if (rowCount > 0) {
+//                    withStatement.append(" UNION ALL ");
+//                }
+//                withStatement.append("SELECT ");
+//                first = true;
+//                for (MySQLConstant value : row.values()) {
+//                    if (!first) {
+//                        withStatement.append(", ");
+//                    }
+//                    withStatement.append(value.getSQLRepresentation());
+//                    first = false;
+//                }
+//                rowCount++;
+//            }
+//        } else {
+//            return "";
+//        }
+//        withStatement.append(")");
+//        return withStatement.toString();
+//    }
+
+
 }

@@ -14,7 +14,7 @@ public class MySQLSubqueryTreeNodeVisitor {
     private MySQLTemporaryTableManager manager = new MySQLTemporaryTableManager();
     private static int tableCount = 0;
     private List<String> tableNames = new ArrayList<>();
-    private String testString = "";
+    private String tableString = "";
 
     public void visit(MySQLSubqueryTreeNode node) {
         if (node == null) {
@@ -67,7 +67,6 @@ public class MySQLSubqueryTreeNodeVisitor {
 
         // todo: execution?
 
-
     }
 
     /**
@@ -78,11 +77,12 @@ public class MySQLSubqueryTreeNodeVisitor {
         String tableName = generateTableNameWithUUID();
         tableNames.add(tableName);
         String sql = buildSQLFromChildren(node, tableName);
-        this.testString = testString + sql;
+        this.tableString = tableString + sql;
+
     }
 
-    public String getTestString() {
-        return testString;
+    public String getTableString() {
+        return tableString;
     }
 
     private String buildSQLFromChildren(MySQLSubqueryTreeNode node, String tableName) {
@@ -114,15 +114,19 @@ public class MySQLSubqueryTreeNodeVisitor {
         SQLBuilder.append(tableSQL);
 
         // build the flattened SQL
-        SQLBuilder.append("SELECT ");
-        SQLBuilder.append(columnNames);
-        SQLBuilder.append(" FROM ");
-        SQLBuilder.append(fromTableName);
-        if (node.getSubquery().getWhereClause() != null) {
-            SQLBuilder.append(" WHERE ");
-            SQLBuilder.append(whereClause);
+        boolean addFlattenedSQL = true;
+        if (addFlattenedSQL) {
+            SQLBuilder.append("SELECT ");
+            SQLBuilder.append(columnNames);
+            SQLBuilder.append(" FROM ");
+            SQLBuilder.append(fromTableName);
+//        if (node.getSubquery().getWhereClause() != null) {
+//            SQLBuilder.append(" WHERE ");
+//            SQLBuilder.append(whereClause);
+//        }
+            SQLBuilder.append(";");
         }
-        SQLBuilder.append(";");
+
 
         return SQLBuilder.toString();
     }
