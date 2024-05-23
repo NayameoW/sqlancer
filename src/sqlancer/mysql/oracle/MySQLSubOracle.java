@@ -67,8 +67,9 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
 //            default:
 //                throw new AssertionError();
 //        }
-//        testSubquery = generateWhereSubquery(fromList, columns);
-        testSubquery = generateScalarSubquery(fromList, columns);
+
+        testSubquery = generateWhereSubquery(fromList, columns);
+//        testSubquery = generateScalarSubquery(fromList, columns);
 
         MySQLSubqueryTreeNode rootNode = generateSubqueryTree(testSubquery);
         MySQLTemporaryTableManager manager = new MySQLTemporaryTableManager();
@@ -104,7 +105,7 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
                     subqueryCount++;
                 }
             }
-            System.out.println("SELECT " + subqueryCount + " results");
+//            System.out.println("SELECT " + subqueryCount + " results");
         } catch (Exception e) {
             throw new AssertionError(e);
         }
@@ -125,13 +126,13 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
                             flattenedCount ++;
                         }
                     }
-                    System.out.println("SELECT " + flattenedCount + " results");
+//                    System.out.println("SELECT " + flattenedCount + " results");
                 } catch (Exception e) {
                     throw new AssertionError(e);
                 }
             } else {
                 if(state.executeStatement(tableGenerator)) {
-                    System.out.println(statement + " executed successfully");
+//                    System.out.println(statement + " executed successfully");
                 } else {
                     System.out.println(statement + " failed");
                 }
@@ -139,12 +140,14 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
 
         }
 
+        // test
         if (subqueryCount != flattenedCount) {
             System.out.println(MySQLVisitor.asString(testSubquery));
-            System.out.println("BUG!!!");
+            System.out.println("BUG: " + subqueryCount + " != " + flattenedCount);
+        } else {
+            System.out.println(subqueryCount + " == " + flattenedCount);
         }
 
-//
 //        Query<SQLConnection> tableGenerator = new SQLQueryAdapter(visitor.getTableString());
 //        state.executeStatement(tableGenerator);
 

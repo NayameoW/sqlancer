@@ -114,7 +114,12 @@ public class MySQLSubqueryTreeNodeVisitor {
         if (! node.getWhereComparisonSubquery().isEmpty()) {
             String leftValue = getSubqueryValue(node.getWhereComparisonSubquery().get(0));
             String rightValue = getSubqueryValue(node.getWhereComparisonSubquery().get(1));
-            whereClause = "(" + leftValue + " > " + rightValue + ")";
+            if (!leftValue.isEmpty() && !rightValue.isEmpty()) {
+                whereClause = "(" + leftValue + " >= " + rightValue + ")";
+            } else {
+                whereClause = "NULL";
+            }
+
         } else {
             whereClause = "";
         }
@@ -127,10 +132,10 @@ public class MySQLSubqueryTreeNodeVisitor {
             SQLBuilder.append(columnNames);
             SQLBuilder.append(" FROM ");
             SQLBuilder.append(fromTableName);
-//        if (node.getSubquery().getWhereClause() != null) {
-//            SQLBuilder.append(" WHERE ");
-//            SQLBuilder.append(whereClause);
-//        }
+            if (node.getSubquery().getWhereClause() != null) {
+                SQLBuilder.append(" WHERE ");
+                SQLBuilder.append(whereClause);
+            }
             SQLBuilder.append(";");
         }
 
