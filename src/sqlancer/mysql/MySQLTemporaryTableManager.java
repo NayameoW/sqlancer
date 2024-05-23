@@ -12,7 +12,7 @@ import java.util.Map.Entry;
 public class MySQLTemporaryTableManager {
 
     public String createTemporaryTableStatement(MySQLSubqueryTreeNode node, String tableName) {
-        StringBuilder createStatement = new StringBuilder("CREATE TABLE " + tableName + " (");
+        StringBuilder createStatement = new StringBuilder("CREATE TEMPORARY TABLE " + tableName + " (");
         if (!node.getSubqueryResult().isEmpty()) {
             Set<Entry<MySQLColumn, MySQLConstant>> entrySet = node.getSubqueryResult().values().iterator().next().entrySet();
             boolean first = true;
@@ -25,7 +25,7 @@ public class MySQLTemporaryTableManager {
                 first = false;
             }
         } else {
-            return "";
+            return "CREATE TEMPORARY TABLE " + tableName + " (c0 INT, c1 INT, c2 INT);";
         }
         createStatement.append(");");
         return createStatement.toString();
