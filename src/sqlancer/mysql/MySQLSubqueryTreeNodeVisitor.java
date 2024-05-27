@@ -123,8 +123,8 @@ public class MySQLSubqueryTreeNodeVisitor {
         } else {
             whereClause = "";
         }
-        SQLBuilder.append(tableSQL);
 
+        SQLBuilder.append(tableSQL);
         // build the flattened SQL
         boolean addFlattenedSQL = true;
         if (addFlattenedSQL) {
@@ -135,6 +135,10 @@ public class MySQLSubqueryTreeNodeVisitor {
             if (node.getSubquery().getWhereClause() != null) {
                 SQLBuilder.append(" WHERE ");
                 SQLBuilder.append(whereClause);
+            }
+            if (node.getSubquery().getLimitClause() != null) {
+                MySQLLimit limit = (MySQLLimit) node.getSubquery().getLimitClause();
+                SQLBuilder.append(" LIMIT " + limit.getLimit());
             }
             SQLBuilder.append(";");
         }

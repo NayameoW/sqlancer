@@ -1,6 +1,7 @@
 package sqlancer.mysql.oracle;
 
 import com.google.common.collect.Lists;
+import io.questdb.cairo.pool.ReaderPool;
 import sqlancer.*;
 import sqlancer.common.oracle.SubBase;
 import sqlancer.common.oracle.TestOracle;
@@ -13,6 +14,7 @@ import sqlancer.mysql.ast.*;
 import sqlancer.mysql.ast.MySQLOrderByTerm.MySQLOrder;
 import sqlancer.mysql.gen.MySQLExpressionGenerator;
 import sqlancer.mysql.ast.MySQLBinaryComparisonOperation.BinaryComparisonOperator;
+import sqlancer.mysql.gen.MySQLRandomQuerySynthesizer;
 
 
 import java.util.ArrayList;
@@ -68,16 +70,10 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
 //                throw new AssertionError();
 //        }
 
-        testSubquery = generateWhereSubquery(fromList, columns);
-//        testSubquery = generateScalarSubquery(fromList, columns);
-
-        MySQLSubqueryTreeNode rootNode = generateSubqueryTree(testSubquery);
-        MySQLTemporaryTableManager manager = new MySQLTemporaryTableManager();
-//        String testString = manager.createTemporaryTableStatement(rootNode, "tempTable1");
-//        String testString2 = manager.generateInsertStatements(rootNode, "tempTable2");
-
-        MySQLSubqueryTreeNodeVisitor visitor = new MySQLSubqueryTreeNodeVisitor();
-        visitor.visit(rootNode);
+//        testSubquery = generateWhereSubquery(fromList, columns);
+        testSubquery = generateScalarSubquery(fromList, columns);
+//        testSubquery = generateExistQuery(fromList, 3);
+//        testSubquery = generateOnlyWhereSubquery();
 
         if (state.getOptions().logEachSelect()) {
             logger.writeCurrent(MySQLVisitor.asString(testSubquery));
@@ -92,6 +88,11 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
 //            }
 //            logger.writeCurrent(visitor.getTableString());
         }
+
+        MySQLSubqueryTreeNode rootNode = generateSubqueryTree(testSubquery);
+        MySQLTemporaryTableManager manager = new MySQLTemporaryTableManager();
+        MySQLSubqueryTreeNodeVisitor visitor = new MySQLSubqueryTreeNodeVisitor();
+        visitor.visit(rootNode);
 
         // testing oracle
         int subqueryCount = 0;
@@ -127,6 +128,7 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
                         }
                     }
 //                    System.out.println("SELECT " + flattenedCount + " results");
+//                    System.out.println(statement + " executed successfully");
                 } catch (Exception e) {
                     throw new AssertionError(e);
                 }
@@ -134,22 +136,20 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
                 if(state.executeStatement(tableGenerator)) {
 //                    System.out.println(statement + " executed successfully");
                 } else {
-                    System.out.println(statement + " failed");
+//                    System.out.println(statement + " failed");
                 }
             }
 
         }
 
         // test
-        if (subqueryCount != flattenedCount) {
-            System.out.println(MySQLVisitor.asString(testSubquery));
-            System.out.println("BUG: " + subqueryCount + " != " + flattenedCount);
-        } else {
-            System.out.println(subqueryCount + " == " + flattenedCount);
-        }
-
-//        Query<SQLConnection> tableGenerator = new SQLQueryAdapter(visitor.getTableString());
-//        state.executeStatement(tableGenerator);
+//        if (subqueryCount != flattenedCount) {
+//            System.out.println(MySQLVisitor.asString(testSubquery));
+//            System.out.println("BUG: " + subqueryCount + " != " + flattenedCount);
+//        } else {
+//            System.out.println(MySQLVisitor.asString(testSubquery));
+//            System.out.println(subqueryCount + " == " + flattenedCount);
+//        }
 
         dropAllTempTables(visitor.getTableNames());
     }
@@ -165,23 +165,24 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
         return selectQuery;
     }
 
-    private MySQLSelect generateExistQuery(List<MySQLExpression> fromList) {
-        MySQLSelect selectQuery = new MySQLSelect();
-        selectQuery.setFetchColumns(fetchColumns);
-        selectQuery.setFromList(fromList);
+    private MySQLSelect generateRandomSelectUsingTableName(String tableName) {
+        MySQLSelect randomSelect = MySQLRandomQuerySynthesizer.generate(state, 1);
 
-        MySQLSelect existQuery = new MySQLSelect();
-        existQuery.setFetchColumns(fetchColumns);
-        existQuery.setFromList(fromList);
+        return randomSelect;
+    }
 
-        existQuery.setWhereClause(gen.generateExpression());
-        if (Randomly.getBoolean()) {
-            existQuery.setGroupByExpressions(fetchColumns);
+    private MySQLSelect generateExistQuery(List<MySQLExpression> fromList, int depth) {
+        MySQLSelect innerQuery = MySQLRandomQuerySynthesizer.generate(state, 2);
+        MySQLSelect outerQuery = null;
+
+        for (int i = 0; i < depth; i++) {
+            outerQuery = MySQLRandomQuerySynthesizer.generate(state, 2);
+            MySQLExists exists = new MySQLExists(innerQuery);
+            outerQuery.setWhereClause(exists);
+            innerQuery = outerQuery;
         }
 
-        MySQLExists exists = new MySQLExists(existQuery);
-        selectQuery.setWhereClause(exists);
-        return selectQuery;
+        return outerQuery;
     }
 
     private MySQLSelect generateTableSubquery(List<MySQLExpression> fromList) {
@@ -216,6 +217,7 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
      */
     private MySQLSelect generateScalarSubquery(List<MySQLExpression> fromList, List<MySQLColumn> columns) {
         MySQLSelect tableSubquery = generateTableSubquery(fromList);
+//        MySQLSelect tableSubquery = MySQLRandomQuerySynthesizer.generate(state, 2);
         MySQLSelect rowSubquery = generateRowSubquery(tableSubquery, columns);
 
         List<MySQLColumn> singleColumn = Randomly.nonEmptySubset(columns, 1);
@@ -236,6 +238,16 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
         MySQLSelect scalarSubquery2 = generateScalarSubquery(fromList, columns);
         MySQLExpression whereClause = new MySQLBinaryComparisonOperation(scalarSubquery1, scalarSubquery2, BinaryComparisonOperator.GREATER_EQUALS);
 
+        selectQuery.setWhereClause(whereClause);
+
+        return selectQuery;
+    }
+
+    private MySQLSelect generateOnlyWhereSubquery() {
+        MySQLSelect selectQuery = MySQLRandomQuerySynthesizer.generate(state, 3);
+        MySQLSelect leftSubquery = MySQLRandomQuerySynthesizer.generate(state, 2);
+        MySQLSelect rightSubquery = MySQLRandomQuerySynthesizer.generate(state, 2);
+        MySQLExpression whereClause = new MySQLBinaryComparisonOperation(leftSubquery, rightSubquery, BinaryComparisonOperator.GREATER_EQUALS);
         selectQuery.setWhereClause(whereClause);
 
         return selectQuery;
