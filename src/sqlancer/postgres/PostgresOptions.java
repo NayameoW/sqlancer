@@ -13,10 +13,7 @@ import sqlancer.OracleFactory;
 import sqlancer.common.oracle.CompositeTestOracle;
 import sqlancer.common.oracle.TestOracle;
 import sqlancer.postgres.PostgresOptions.PostgresOracleFactory;
-import sqlancer.postgres.oracle.PostgresCERTOracle;
-import sqlancer.postgres.oracle.PostgresFuzzer;
-import sqlancer.postgres.oracle.PostgresNoRECOracle;
-import sqlancer.postgres.oracle.PostgresPivotedQuerySynthesisOracle;
+import sqlancer.postgres.oracle.*;
 import sqlancer.postgres.oracle.tlp.PostgresTLPAggregateOracle;
 import sqlancer.postgres.oracle.tlp.PostgresTLPHavingOracle;
 import sqlancer.postgres.oracle.tlp.PostgresTLPWhereOracle;
@@ -96,6 +93,12 @@ public class PostgresOptions implements DBMSSpecificOptions<PostgresOracleFactor
                 return new PostgresFuzzer(globalState);
             }
 
+        },
+        SUB {
+            @Override
+            public TestOracle<PostgresGlobalState> create(PostgresGlobalState globalState) throws Exception {
+                return new PostgresSUBOracle(globalState);
+            }
         };
 
     }
