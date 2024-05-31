@@ -1,20 +1,20 @@
 package sqlancer.mysql.oracle;
 
 import com.google.common.collect.Lists;
-import sqlancer.Randomly;
-import sqlancer.Reproducer;
-import sqlancer.SQLConnection;
-import sqlancer.SQLancerDBConnection;
+import io.questdb.cairo.pool.ReaderPool;
+import sqlancer.*;
 import sqlancer.common.oracle.SubBase;
 import sqlancer.common.oracle.TestOracle;
 import sqlancer.common.query.Query;
 import sqlancer.common.query.SQLQueryAdapter;
+import sqlancer.common.query.SQLancerResultSet;
 import sqlancer.mysql.*;
 import sqlancer.mysql.MySQLSchema.*;
 import sqlancer.mysql.ast.*;
 import sqlancer.mysql.ast.MySQLOrderByTerm.MySQLOrder;
 import sqlancer.mysql.gen.MySQLExpressionGenerator;
 import sqlancer.mysql.ast.MySQLBinaryComparisonOperation.BinaryComparisonOperator;
+import sqlancer.mysql.gen.MySQLRandomQuerySynthesizer;
 
 
 import java.util.ArrayList;
@@ -69,16 +69,11 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
 //            default:
 //                throw new AssertionError();
 //        }
+
 //        testSubquery = generateWhereSubquery(fromList, columns);
         testSubquery = generateScalarSubquery(fromList, columns);
-
-        MySQLSubqueryTreeNode rootNode = generateSubqueryTree(testSubquery);
-        MySQLTemporaryTableManager manager = new MySQLTemporaryTableManager();
-//        String testString = manager.createTemporaryTableStatement(rootNode, "tempTable1");
-//        String testString2 = manager.generateInsertStatements(rootNode, "tempTable2");
-
-        MySQLSubqueryTreeNodeVisitor visitor = new MySQLSubqueryTreeNodeVisitor();
-        visitor.visit(rootNode);
+//        testSubquery = generateExistQuery(fromList, 3);
+//        testSubquery = generateOnlyWhereSubquery();
 
         if (state.getOptions().logEachSelect()) {
             logger.writeCurrent(MySQLVisitor.asString(testSubquery));
@@ -91,36 +86,72 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
 //            if (rootNode.getInsertValuesSQL() != null) {
 //                logger.writeCurrent(rootNode.getInsertValuesSQL());
 //            }
-            logger.writeCurrent(visitor.getTableString());
+//            logger.writeCurrent(visitor.getTableString());
         }
+
+        MySQLSubqueryTreeNode rootNode = generateSubqueryTree(testSubquery);
+        MySQLTemporaryTableManager manager = new MySQLTemporaryTableManager();
+        MySQLSubqueryTreeNodeVisitor visitor = new MySQLSubqueryTreeNodeVisitor();
+        visitor.visit(rootNode);
 
         // testing oracle
-        //
+        int subqueryCount = 0;
+        Query<SQLConnection> subqueryAdapter = new SQLQueryAdapter(MySQLVisitor.asString(testSubquery));
+        try (SQLancerResultSet rs = state.executeStatementAndGet(subqueryAdapter)) {
+            if (rs == null) {
+                System.out.println("no results");
+                throw new IgnoreMeException();
+            } else {
+                while (rs.next()) {
+                    subqueryCount++;
+                }
+            }
+//            System.out.println("SELECT " + subqueryCount + " results");
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
 
         // execute flattened queries
-//        Query<SQLConnection> queryAdapter = new SQLQueryAdapter(rootNode.getCreateTableSQL());
+        int flattenedCount = 0;
         String[] statements = visitor.getTableString().split(";");
-        for (String statement : statements) {
+        for (int i = 0; i < statements.length; i++) {
+            String statement = statements[i];
             Query<SQLConnection> tableGenerator = new SQLQueryAdapter(statement.trim());
-            if(state.executeStatement(tableGenerator)) {
-                System.out.println(statement + " exectuted successfully");
+            if (statement.startsWith("SELECT") && i == statements.length - 1) {
+                try (SQLancerResultSet rs = state.executeStatementAndGet(tableGenerator)) {
+                    if (rs == null) {
+                        System.out.println("no results");
+                        throw new IgnoreMeException();
+                    } else {
+                        while (rs.next()) {
+                            flattenedCount ++;
+                        }
+                    }
+//                    System.out.println("SELECT " + flattenedCount + " results");
+//                    System.out.println(statement + " executed successfully");
+                } catch (Exception e) {
+                    throw new AssertionError(e);
+                }
             } else {
-                System.out.println(statement + " failed");
+                if(state.executeStatement(tableGenerator)) {
+//                    System.out.println(statement + " executed successfully");
+                } else {
+//                    System.out.println(statement + " failed");
+                }
             }
+
         }
-//
-//        Query<SQLConnection> tableGenerator = new SQLQueryAdapter(visitor.getTableString());
-//        state.executeStatement(tableGenerator);
 
-
-//        try (SQLancerResultSet result = queryAdapter.executeAndGet(state)) {
-//
-//        } catch (Exception e) {
-//            throw new AssertionError(e);
+        // test
+//        if (subqueryCount != flattenedCount) {
+//            System.out.println(MySQLVisitor.asString(testSubquery));
+//            System.out.println("BUG: " + subqueryCount + " != " + flattenedCount);
+//        } else {
+//            System.out.println(MySQLVisitor.asString(testSubquery));
+//            System.out.println(subqueryCount + " == " + flattenedCount);
 //        }
 
-        columns.clear();
-        dropAllTempTables(rootNode.getNodeNum());
+        dropAllTempTables(visitor.getTableNames());
     }
 
     private MySQLSelect generateRandomSelect(List<MySQLExpression> fromList, int nr) {
@@ -134,23 +165,24 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
         return selectQuery;
     }
 
-    private MySQLSelect generateExistQuery(List<MySQLExpression> fromList) {
-        MySQLSelect selectQuery = new MySQLSelect();
-        selectQuery.setFetchColumns(fetchColumns);
-        selectQuery.setFromList(fromList);
+    private MySQLSelect generateRandomSelectUsingTableName(String tableName) {
+        MySQLSelect randomSelect = MySQLRandomQuerySynthesizer.generate(state, 1);
 
-        MySQLSelect existQuery = new MySQLSelect();
-        existQuery.setFetchColumns(fetchColumns);
-        existQuery.setFromList(fromList);
+        return randomSelect;
+    }
 
-        existQuery.setWhereClause(gen.generateExpression());
-        if (Randomly.getBoolean()) {
-            existQuery.setGroupByExpressions(fetchColumns);
+    private MySQLSelect generateExistQuery(List<MySQLExpression> fromList, int depth) {
+        MySQLSelect innerQuery = MySQLRandomQuerySynthesizer.generate(state, 2);
+        MySQLSelect outerQuery = null;
+
+        for (int i = 0; i < depth; i++) {
+            outerQuery = MySQLRandomQuerySynthesizer.generate(state, 2);
+            MySQLExists exists = new MySQLExists(innerQuery);
+            outerQuery.setWhereClause(exists);
+            innerQuery = outerQuery;
         }
 
-        MySQLExists exists = new MySQLExists(existQuery);
-        selectQuery.setWhereClause(exists);
-        return selectQuery;
+        return outerQuery;
     }
 
     private MySQLSelect generateTableSubquery(List<MySQLExpression> fromList) {
@@ -168,13 +200,13 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
         rowSubquery.setLimitClause(limit);
         rowSubquery.setTableAlias(new MySQLTableAlias(vTable1));
 
-        if (Randomly.getBoolean()) {
-            MySQLTable vTable2 = new MySQLTable("st0", columns, null, null);
-            MySQLExpressionGenerator generator = new MySQLExpressionGenerator(state).setColumns(columns);
-            generator.setAliasTable(vTable2);
-            MySQLExpression whereClause = generator.generateExpression();
-            rowSubquery.setWhereClause(whereClause);
-        }
+//        if (Randomly.getBoolean()) {
+//            MySQLTable vTable2 = new MySQLTable("st0", columns, null, null);
+//            MySQLExpressionGenerator generator = new MySQLExpressionGenerator(state).setColumns(columns);
+//            generator.setAliasTable(vTable2);
+//            MySQLExpression whereClause = generator.generateExpression();
+//            rowSubquery.setWhereClause(whereClause);
+//        }
 
         return rowSubquery;
     }
@@ -185,6 +217,7 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
      */
     private MySQLSelect generateScalarSubquery(List<MySQLExpression> fromList, List<MySQLColumn> columns) {
         MySQLSelect tableSubquery = generateTableSubquery(fromList);
+//        MySQLSelect tableSubquery = MySQLRandomQuerySynthesizer.generate(state, 2);
         MySQLSelect rowSubquery = generateRowSubquery(tableSubquery, columns);
 
         List<MySQLColumn> singleColumn = Randomly.nonEmptySubset(columns, 1);
@@ -205,6 +238,16 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
         MySQLSelect scalarSubquery2 = generateScalarSubquery(fromList, columns);
         MySQLExpression whereClause = new MySQLBinaryComparisonOperation(scalarSubquery1, scalarSubquery2, BinaryComparisonOperator.GREATER_EQUALS);
 
+        selectQuery.setWhereClause(whereClause);
+
+        return selectQuery;
+    }
+
+    private MySQLSelect generateOnlyWhereSubquery() {
+        MySQLSelect selectQuery = MySQLRandomQuerySynthesizer.generate(state, 3);
+        MySQLSelect leftSubquery = MySQLRandomQuerySynthesizer.generate(state, 2);
+        MySQLSelect rightSubquery = MySQLRandomQuerySynthesizer.generate(state, 2);
+        MySQLExpression whereClause = new MySQLBinaryComparisonOperation(leftSubquery, rightSubquery, BinaryComparisonOperator.GREATER_EQUALS);
         selectQuery.setWhereClause(whereClause);
 
         return selectQuery;
@@ -247,11 +290,15 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
         return rootNode;
     }
 
-    private void dropAllTempTables(int tableCount) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < tableCount; i ++) {
-            sb.append("DROP TABLE tempTable").append(i);
+    private void dropAllTempTables(List<String> tableNames) throws Exception {
+        for (String tableName : tableNames) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("DROP TABLE IF EXISTS ").append(tableName);
             sb.append(";");
+            Query<SQLConnection> delete = new SQLQueryAdapter(sb.toString());
+//            if (state.executeStatement(delete)) {
+//                System.out.println(sb.toString());
+//            }
         }
     }
 

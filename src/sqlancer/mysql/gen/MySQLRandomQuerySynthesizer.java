@@ -7,10 +7,7 @@ import java.util.stream.Collectors;
 import sqlancer.Randomly;
 import sqlancer.mysql.MySQLGlobalState;
 import sqlancer.mysql.MySQLSchema.MySQLTables;
-import sqlancer.mysql.ast.MySQLConstant;
-import sqlancer.mysql.ast.MySQLExpression;
-import sqlancer.mysql.ast.MySQLSelect;
-import sqlancer.mysql.ast.MySQLTableReference;
+import sqlancer.mysql.ast.*;
 
 public final class MySQLRandomQuerySynthesizer {
 
@@ -24,7 +21,10 @@ public final class MySQLRandomQuerySynthesizer {
         List<MySQLExpression> columns = new ArrayList<>();
 
         select.setSelectType(Randomly.fromOptions(MySQLSelect.SelectType.values()));
-        columns.addAll(gen.generateExpressions(nrColumns));
+        List<MySQLColumnReference> columnReference = globalState.getSchema().getRandomTable().getColumns().stream().map(c -> new MySQLColumnReference(c, null))
+                .collect(Collectors.toList());
+        columns.addAll(columnReference);
+//        columns.addAll(gen.generateExpressions(nrColumns));
         select.setFetchColumns(columns);
         List<MySQLExpression> tableList = tables.getTables().stream().map(t -> new MySQLTableReference(t))
                 .collect(Collectors.toList());
@@ -35,12 +35,12 @@ public final class MySQLRandomQuerySynthesizer {
         if (Randomly.getBooleanWithRatherLowProbability()) {
             select.setOrderByClauses(gen.generateOrderBys());
         }
-        if (Randomly.getBoolean()) {
-            select.setGroupByExpressions(gen.generateExpressions(Randomly.smallNumber() + 1));
-            if (Randomly.getBoolean()) {
-                select.setHavingClause(gen.generateHavingClause());
-            }
-        }
+//        if (Randomly.getBoolean()) {
+//            select.setGroupByExpressions(gen.generateExpressions(Randomly.smallNumber() + 1));
+//            if (Randomly.getBoolean()) {
+//                select.setHavingClause(gen.generateHavingClause());
+//            }
+//        }
         if (Randomly.getBoolean()) {
             select.setLimitClause(MySQLConstant.createIntConstant(Randomly.getPositiveOrZeroNonCachedInteger()));
             if (Randomly.getBoolean()) {

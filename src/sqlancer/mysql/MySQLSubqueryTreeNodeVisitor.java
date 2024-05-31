@@ -15,6 +15,7 @@ public class MySQLSubqueryTreeNodeVisitor {
     private static int tableCount = 0;
     private List<String> tableNames = new ArrayList<>();
     private String tableString = "";
+    private boolean useUUID = true;
 
     public void visit(MySQLSubqueryTreeNode node) {
         if (node == null) {
@@ -59,7 +60,6 @@ public class MySQLSubqueryTreeNodeVisitor {
      */
     private void executeLeafNode(MySQLSubqueryTreeNode node) {
         String tableName = generateTableNameWithUUID();
-        tableNames.add(tableName);
         String createTableSQL = manager.createTemporaryTableStatement(node, tableName);
         String insertValuesSQL = manager.generateInsertStatements(node, tableName);
         node.setCreateTableSQL(createTableSQL);
@@ -74,11 +74,14 @@ public class MySQLSubqueryTreeNodeVisitor {
      * @param node: A node that has children
      */
     private void executeInternalNode(MySQLSubqueryTreeNode node) {
-        String tableName = generateTableNameWithUUID();
-        tableNames.add(tableName);
+        String tableName;
+        if (useUUID) {
+            tableName = generateTableNameWithUUID();
+        } else {
+            tableName = generateTableNameWithCount();
+        }
         String sql = buildSQLFromChildren(node, tableName);
         this.tableString = tableString + sql;
-
     }
 
     public String getTableString() {
@@ -96,7 +99,11 @@ public class MySQLSubqueryTreeNodeVisitor {
         MySQLSelect select = node.getSubquery();
 
         if (node.getFromSubquery() != null) {
-            fromTableName = generateTableNameWithUUID();
+            if (useUUID) {
+                fromTableName = generateTableNameWithUUID();
+            } else {
+                fromTableName = generateTableNameWithCount();
+            }
             tableSQL = generateTempTable(node.getFromSubquery(), fromTableName);
             columnNames = getColumnNames(select, fromTableName, false);
         } else {
@@ -107,12 +114,17 @@ public class MySQLSubqueryTreeNodeVisitor {
         if (! node.getWhereComparisonSubquery().isEmpty()) {
             String leftValue = getSubqueryValue(node.getWhereComparisonSubquery().get(0));
             String rightValue = getSubqueryValue(node.getWhereComparisonSubquery().get(1));
-            whereClause = "(" + leftValue + " > " + rightValue + ")";
+            if (!leftValue.isEmpty() && !rightValue.isEmpty()) {
+                whereClause = "(" + leftValue + " >= " + rightValue + ")";
+            } else {
+                whereClause = "NULL";
+            }
+
         } else {
             whereClause = "";
         }
-        SQLBuilder.append(tableSQL);
 
+        SQLBuilder.append(tableSQL);
         // build the flattened SQL
         boolean addFlattenedSQL = true;
         if (addFlattenedSQL) {
@@ -120,10 +132,14 @@ public class MySQLSubqueryTreeNodeVisitor {
             SQLBuilder.append(columnNames);
             SQLBuilder.append(" FROM ");
             SQLBuilder.append(fromTableName);
-//        if (node.getSubquery().getWhereClause() != null) {
-//            SQLBuilder.append(" WHERE ");
-//            SQLBuilder.append(whereClause);
-//        }
+            if (node.getSubquery().getWhereClause() != null) {
+                SQLBuilder.append(" WHERE ");
+                SQLBuilder.append(whereClause);
+            }
+            if (node.getSubquery().getLimitClause() != null) {
+                MySQLLimit limit = (MySQLLimit) node.getSubquery().getLimitClause();
+                SQLBuilder.append(" LIMIT " + limit.getLimit());
+            }
             SQLBuilder.append(";");
         }
 
@@ -132,7 +148,13 @@ public class MySQLSubqueryTreeNodeVisitor {
     }
 
     private String generateTableNameWithUUID() {
-        return "tempTable_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        String tableName = "tempTable_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        tableNames.add(tableName);
+        return tableName;
+    }
+
+    private String generateTableNameWithCount() {
+        return "tempTable_" + tableCount;
     }
 
     private String generateTempTable(MySQLSubqueryTreeNode node, String tableName) {
@@ -199,4 +221,7 @@ public class MySQLSubqueryTreeNodeVisitor {
         return constant.getTextRepresentation();
     }
 
+    public List<String> getTableNames() {
+        return tableNames;
+    }
 }
