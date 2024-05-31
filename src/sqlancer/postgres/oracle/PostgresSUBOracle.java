@@ -15,7 +15,6 @@ import sqlancer.postgres.PostgresVisitor;
 import sqlancer.postgres.ast.PostgresAggregate;
 import sqlancer.postgres.ast.PostgresAggregate.PostgresAggregateFunction;
 import sqlancer.postgres.ast.PostgresExpression;
-import sqlancer.postgres.ast.PostgresSelect;
 import sqlancer.postgres.ast.PostgresSelect.PostgresSubquery;
 import sqlancer.postgres.gen.PostgresExpressionGenerator;
 
