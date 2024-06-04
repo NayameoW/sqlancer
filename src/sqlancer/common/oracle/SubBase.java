@@ -23,7 +23,7 @@ public abstract class SubBase<S extends SQLGlobalState<?, ?>, R extends Abstract
 
     protected R targetRow;
     protected List<R> targetRows;
-    protected final int subqueryDepth = 1;
+    protected final int subqueryDepth = 3;
     protected String subQueryString;
     protected List<Query<C>> flattenedQueries = new ArrayList<>();
     protected final List<E> rectifiedPredicates = new ArrayList<>();
