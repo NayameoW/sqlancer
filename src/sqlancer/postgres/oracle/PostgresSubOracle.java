@@ -1,6 +1,5 @@
 package sqlancer.postgres.oracle;
 
-import sqlancer.IgnoreMeException;
 import sqlancer.Randomly;
 import sqlancer.Reproducer;
 import sqlancer.SQLConnection;
@@ -30,12 +29,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class PostgresSUBOracle extends SubBase<PostgresGlobalState, PostgresRowValue, PostgresExpression, SQLConnection> implements TestOracle<PostgresGlobalState> {
+public class PostgresSubOracle extends SubBase<PostgresGlobalState, PostgresRowValue, PostgresExpression, SQLConnection> implements TestOracle<PostgresGlobalState> {
 
     private final PostgresSchema s;
     private Reproducer<PostgresGlobalState> reproducer;
 
-    public PostgresSUBOracle(PostgresGlobalState state) {
+    PostgresExpressionGenerator gen;
+
+    public PostgresSubOracle(PostgresGlobalState state) {
         super(state);
         this.s = state.getSchema();
     }
@@ -45,9 +46,11 @@ public class PostgresSUBOracle extends SubBase<PostgresGlobalState, PostgresRowV
         PostgresTables randomFromTables = s.getRandomTableNonEmptyTables();
         List<PostgresTable> tables = randomFromTables.getTables();
         List<PostgresColumn> columns = randomFromTables.getColumns();
+        gen = new PostgresExpressionGenerator(state).setColumns(columns);
         fetchColExpression = columns.stream().map(PostgresColumnReference::new)
                 .collect(Collectors.toList());
 
+        // construct test cases
         PostgresSubquery subquery = PostgresExpressionGenerator.createSubquery(state, "st", randomFromTables);
 
         PostgresSelect testQuery = new PostgresSelect();
@@ -57,28 +60,50 @@ public class PostgresSUBOracle extends SubBase<PostgresGlobalState, PostgresRowV
         fromTableExpressions.add(subquery);
         testQuery.setFromList(fromTableExpressions);
 
-        if (options.logEachSelect()) {
-            logger.writeCurrent(PostgresVisitor.asString(testQuery));
-        }
+//        if (options.logEachSelect()) {
+//            logger.writeCurrent(PostgresVisitor.asString(testQuery));
+//        }
 
+        generateRandomSelect();
 
         // execution
-        Query<SQLConnection> queryAdapter = new SQLQueryAdapter(PostgresVisitor.asString(testQuery));
-        try (SQLancerResultSet rs = state.executeStatementAndGet(queryAdapter)) {
-            int count = 0;
-            while (rs.next()) {
-                count ++;
-            }
-            System.out.println(count);
-        } catch (Exception e) {
-            throw new AssertionError(e);
-        }
+//        Query<SQLConnection> queryAdapter = new SQLQueryAdapter(PostgresVisitor.asString(testQuery));
+//        try (SQLancerResultSet rs = state.executeStatementAndGet(queryAdapter)) {
+//            int count = 0;
+//            while (rs.next()) {
+//                count ++;
+//            }
+//            System.out.println(count);
+//        } catch (Exception e) {
+//            throw new AssertionError(e);
+//        }
     }
 
     private PostgresExpression generateBooleanExpression(int depth) {
         return null;
     }
 
+    private PostgresSelect generateRandomSelect() {
+        PostgresSelect select = new PostgresSelect();
+        List<PostgresExpression> fetchColumns = new ArrayList<>();
+        for (int i = 0; i < Randomly.smallNumber() + 2; i++) {
+            if (Randomly.getBoolean()) {
+                fetchColumns.add(generateBooleanExpression(i));
+            } else {
+                fetchColumns.add(Randomly.fromList(fetchColumns));
+            }
+        }
+
+        select.setFetchColumns(fetchColumns);
+        select.setFromList();
+
+        logger.writeCurrent(PostgresVisitor.asString(select));
+        return select;
+    }
+
+    private PostgresSelect generateTableSubquery(List<PostgresExpression> fromList) {
+        return null;
+    }
 
     // Generation of aggregate functions
 

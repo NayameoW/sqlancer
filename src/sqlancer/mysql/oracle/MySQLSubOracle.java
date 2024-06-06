@@ -165,12 +165,6 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
         return selectQuery;
     }
 
-    private MySQLSelect generateRandomSelectUsingTableName(String tableName) {
-        MySQLSelect randomSelect = MySQLRandomQuerySynthesizer.generate(state, 1);
-
-        return randomSelect;
-    }
-
     private MySQLSelect generateExistQuery(List<MySQLExpression> fromList, int depth) {
         MySQLSelect innerQuery = MySQLRandomQuerySynthesizer.generate(state, 2);
         MySQLSelect outerQuery = null;

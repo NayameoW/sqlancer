@@ -97,7 +97,7 @@ public class PostgresOptions implements DBMSSpecificOptions<PostgresOracleFactor
         SUB {
             @Override
             public TestOracle<PostgresGlobalState> create(PostgresGlobalState globalState) throws Exception {
-                return new PostgresSUBOracle(globalState);
+                return new PostgresSubOracle(globalState);
             }
         };
 
