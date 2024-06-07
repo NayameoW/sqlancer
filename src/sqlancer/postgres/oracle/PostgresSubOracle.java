@@ -50,7 +50,7 @@ public class PostgresSubOracle extends SubBase<PostgresGlobalState, PostgresRowV
         fetchColExpression = columns.stream().map(PostgresColumnReference::new)
                 .collect(Collectors.toList());
 
-        // construct test cases
+        // generate test cases
         PostgresSubquery subquery = PostgresExpressionGenerator.createSubquery(state, "st", randomFromTables);
 
         PostgresSelect testQuery = new PostgresSelect();
@@ -95,7 +95,7 @@ public class PostgresSubOracle extends SubBase<PostgresGlobalState, PostgresRowV
         }
 
         select.setFetchColumns(fetchColumns);
-        select.setFromList();
+//        select.setFromList();
 
         logger.writeCurrent(PostgresVisitor.asString(select));
         return select;

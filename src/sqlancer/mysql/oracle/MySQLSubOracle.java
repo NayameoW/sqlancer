@@ -40,6 +40,9 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
 
     @Override
     public void check() throws Exception {
+        Profiler profiler = Profiler.getInstance();
+        profiler.setLogger(logger);
+
         MySQLTables randomFromTables = state.getSchema().getRandomTableNonEmptyTables();
         List<MySQLTable> tables = randomFromTables.getTables();
         List<MySQLColumn> columns = randomFromTables.getColumns();
@@ -69,14 +72,16 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
 //            default:
 //                throw new AssertionError();
 //        }
-
+        profiler.startTick("generate_testcase");
 //        testSubquery = generateWhereSubquery(fromList, columns);
         testSubquery = generateScalarSubquery(fromList, columns);
 //        testSubquery = generateExistQuery(fromList, 3);
 //        testSubquery = generateOnlyWhereSubquery();
+        profiler.endTick("generate_testcase");
 
         if (state.getOptions().logEachSelect()) {
-            logger.writeCurrent(MySQLVisitor.asString(testSubquery));
+//            logger.writeCurrent(MySQLVisitor.asString(testSubquery));
+
 //            logger.writeCurrent(testString);
 //            logger.writeCurrent(testString2);
 //            logger.writeCurrent(String.valueOf(rootNode.getNodeNum()));
@@ -89,11 +94,17 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
 //            logger.writeCurrent(visitor.getTableString());
         }
 
+        profiler.startTick("generate_tree");
+
         MySQLSubqueryTreeNode rootNode = generateSubqueryTree(testSubquery);
         MySQLTemporaryTableManager manager = new MySQLTemporaryTableManager();
         MySQLSubqueryTreeNodeVisitor visitor = new MySQLSubqueryTreeNodeVisitor();
         visitor.visit(rootNode);
 
+        profiler.endTick("generate_tree");
+
+
+        profiler.startTick("flattening");
         // testing oracle
         int subqueryCount = 0;
         Query<SQLConnection> subqueryAdapter = new SQLQueryAdapter(MySQLVisitor.asString(testSubquery));
@@ -141,6 +152,8 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
             }
 
         }
+
+        profiler.endTick("flattening");
 
         // test
 //        if (subqueryCount != flattenedCount) {
