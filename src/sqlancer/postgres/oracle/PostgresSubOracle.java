@@ -83,7 +83,7 @@ public class PostgresSubOracle extends SubBase<PostgresGlobalState, PostgresRowV
         return null;
     }
 
-    private PostgresSelect generateRandomSelect() {
+    private PostgresSelect generateRandomSelect(List<PostgresExpression> fromList) {
         PostgresSelect select = new PostgresSelect();
         List<PostgresExpression> fetchColumns = new ArrayList<>();
         for (int i = 0; i < Randomly.smallNumber() + 2; i++) {
@@ -95,14 +95,31 @@ public class PostgresSubOracle extends SubBase<PostgresGlobalState, PostgresRowV
         }
 
         select.setFetchColumns(fetchColumns);
-        select.setFromList();
+        select.setFromList(fromList);
 
         logger.writeCurrent(PostgresVisitor.asString(select));
         return select;
     }
 
     private PostgresSelect generateTableSubquery(List<PostgresExpression> fromList) {
-        return null;
+        PostgresSelect select = generateRandomSelect(fromList);
+
+        return select;
+    }
+
+    private PostgresSelect generateRowSubquery(List<PostgresExpression> fromList) {
+        PostgresSelect select = new PostgresSelect();
+        List<PostgresExpression> rowFromList = new ArrayList<>(fromList);
+        rowFromList.add(generateTableSubquery(fromList));
+
+        select.setFetchColumns(fetchColExpression);
+        select.setFromList(rowFromList);
+
+        return select;
+    }
+
+    private PostgresSelect generateScalarSubquery(List<PostgresExpression> fromList) {
+
     }
 
     // Generation of aggregate functions
