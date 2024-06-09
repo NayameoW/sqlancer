@@ -119,7 +119,14 @@ public class PostgresSubOracle extends SubBase<PostgresGlobalState, PostgresRowV
     }
 
     private PostgresSelect generateScalarSubquery(List<PostgresExpression> fromList) {
+        PostgresSelect scalarSubquery = new PostgresSelect();
 
+        PostgresSelect rowSubquery = generateRowSubquery(fromList);
+        List<PostgresExpression> scalarFromList = new ArrayList<>(fromList);
+        scalarFromList.add(rowSubquery);
+        scalarSubquery.setFromList(scalarFromList);
+
+        return scalarSubquery;
     }
 
     // Generation of aggregate functions
