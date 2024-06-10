@@ -16,11 +16,8 @@ import sqlancer.postgres.PostgresSchema.PostgresTables;
 import sqlancer.postgres.PostgresSchema.PostgresRowValue;
 import sqlancer.postgres.PostgresSchema.PostgresColumn;
 import sqlancer.postgres.PostgresVisitor;
-import sqlancer.postgres.ast.PostgresAggregate;
+import sqlancer.postgres.ast.*;
 import sqlancer.postgres.ast.PostgresAggregate.PostgresAggregateFunction;
-import sqlancer.postgres.ast.PostgresColumnReference;
-import sqlancer.postgres.ast.PostgresExpression;
-import sqlancer.postgres.ast.PostgresSelect;
 import sqlancer.postgres.ast.PostgresSelect.PostgresSubquery;
 import sqlancer.postgres.ast.PostgresSelect.PostgresFromTable;
 import sqlancer.postgres.gen.PostgresExpressionGenerator;
@@ -55,16 +52,16 @@ public class PostgresSubOracle extends SubBase<PostgresGlobalState, PostgresRowV
 
         PostgresSelect testQuery = new PostgresSelect();
         testQuery.setFetchColumns(fetchColExpression);
-        List<PostgresExpression> fromTableExpressions = tables.stream().map(t -> new PostgresFromTable(t, Randomly.getBoolean()))
-                        .collect(Collectors.toList());
-        fromTableExpressions.add(subquery);
-        testQuery.setFromList(fromTableExpressions);
+        List<PostgresExpression> fromTableRefs = getTableRefs(tables);
+        fromTableRefs.add(subquery);
+        testQuery.setFromList(fromTableRefs);
+        testQuery.setWhereClause(generateExistsSubquery(fromTableRefs));
 
-//        if (options.logEachSelect()) {
-//            logger.writeCurrent(PostgresVisitor.asString(testQuery));
-//        }
+        if (options.logEachSelect()) {
+            logger.writeCurrent(PostgresVisitor.asString(testQuery));
+        }
 
-        generateRandomSelect();
+//        PostgresSelect randomSelect = generateRandomSelect(fromTableRefs);
 
         // execution
 //        Query<SQLConnection> queryAdapter = new SQLQueryAdapter(PostgresVisitor.asString(testQuery));
@@ -83,30 +80,57 @@ public class PostgresSubOracle extends SubBase<PostgresGlobalState, PostgresRowV
         return null;
     }
 
+    /**
+     * Generate a complex SELECT query.
+     * @param fromList from which the query selects rows
+     * @return a randomly generated SELECT query
+     */
     private PostgresSelect generateRandomSelect(List<PostgresExpression> fromList) {
         PostgresSelect select = new PostgresSelect();
-        List<PostgresExpression> fetchColumns = new ArrayList<>();
-        for (int i = 0; i < Randomly.smallNumber() + 2; i++) {
-            if (Randomly.getBoolean()) {
-                fetchColumns.add(generateBooleanExpression(i));
-            } else {
-                fetchColumns.add(Randomly.fromList(fetchColumns));
-            }
+
+        select.setFetchColumns(gen.generateExpressions(Randomly.smallNumber() + 2));
+        select.setFromList(fromList);
+
+        // add WHERE
+        if (Randomly.getBoolean()) {
+            select.setWhereClause(gen.generateExpression(PostgresDataType.BOOLEAN));
         }
 
-        select.setFetchColumns(fetchColumns);
-        select.setFromList(fromList);
+        // add ORDER BY
+        if (Randomly.getBooleanWithRatherLowProbability()) {
+            select.setOrderByClauses(gen.generateOrderBy());
+        }
+
+        // add LIMIT
+        if (Randomly.getBoolean()) {
+            select.setLimitClause(PostgresConstant.createIntConstant(Randomly.getPositiveOrZeroNonCachedInteger()));
+            if (Randomly.getBoolean()) {
+                select.setOffsetClause(PostgresConstant.createIntConstant(Randomly.getPositiveOrZeroNonCachedInteger()));
+            }
+        }
 
         logger.writeCurrent(PostgresVisitor.asString(select));
         return select;
     }
 
+    /**
+     * Generate a subquery that returns a table with multiple columns.
+     * @param fromList from which the query selects rows
+     * @return a table subquery
+     */
     private PostgresSelect generateTableSubquery(List<PostgresExpression> fromList) {
         PostgresSelect select = generateRandomSelect(fromList);
-
+        while (select.getFetchColumns().size() <= 1) {
+            select = generateRandomSelect(fromList);
+        }
         return select;
     }
 
+    /**
+     * Generate a subquery that returns exactly one row based on a table subquery.
+     * @param fromList from which the query selects rows
+     * @return a row subquery
+     */
     private PostgresSelect generateRowSubquery(List<PostgresExpression> fromList) {
         PostgresSelect select = new PostgresSelect();
         List<PostgresExpression> rowFromList = new ArrayList<>(fromList);
@@ -118,6 +142,11 @@ public class PostgresSubOracle extends SubBase<PostgresGlobalState, PostgresRowV
         return select;
     }
 
+    /**
+     * Generate a scalar subquery.
+     * @param fromList from which the query selects rows
+     * @return a scalar subquery
+     */
     private PostgresSelect generateScalarSubquery(List<PostgresExpression> fromList) {
         PostgresSelect scalarSubquery = new PostgresSelect();
 
@@ -137,7 +166,7 @@ public class PostgresSubOracle extends SubBase<PostgresGlobalState, PostgresRowV
         return generateArgsForAggregate(dataType, aggregate);
     }
 
-    public PostgresAggregate generateArgsForAggregate(PostgresDataType dataType, PostgresAggregateFunction agg) {
+    private PostgresAggregate generateArgsForAggregate(PostgresDataType dataType, PostgresAggregateFunction agg) {
         List<PostgresDataType> types = agg.getTypes(dataType);
         List<PostgresExpression> args = new ArrayList<>();
         PostgresExpressionGenerator generator = new PostgresExpressionGenerator(state);
@@ -145,6 +174,18 @@ public class PostgresSubOracle extends SubBase<PostgresGlobalState, PostgresRowV
             args.add(generator.generateExpression(0, argType));
         }
         return new PostgresAggregate(args, agg);
+    }
+
+    // generate EXISTS subquery
+    private PostgresExists generateExistsSubquery(List<PostgresExpression> fromList) {
+        PostgresSelect select = generateRandomSelect(fromList);
+        PostgresExists exists = new PostgresExists(select);
+        return exists;
+    }
+
+    public List<PostgresExpression> getTableRefs(List<PostgresTable> targetTables) {
+        return targetTables.stream().map(t -> new PostgresFromTable(t, Randomly.getBoolean()))
+                .collect(Collectors.toList());
     }
 
     @Override

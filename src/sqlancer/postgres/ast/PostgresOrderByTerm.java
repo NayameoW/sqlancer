@@ -9,7 +9,7 @@ public class PostgresOrderByTerm implements PostgresExpression {
     private final PostgresExpression expr;
 
     public enum PostgresOrder {
-        ASC, DESC;
+        ASC, DESC, RANDOM;
 
         public static PostgresOrder getRandomOrder() {
             return Randomly.fromOptions(PostgresOrder.values());
