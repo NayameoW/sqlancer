@@ -50,12 +50,9 @@ public class PostgresSubOracle extends SubBase<PostgresGlobalState, PostgresRowV
         // generate test cases
         PostgresSubquery subquery = PostgresExpressionGenerator.createSubquery(state, "st", randomFromTables);
 
-        PostgresSelect testQuery = new PostgresSelect();
-        testQuery.setFetchColumns(fetchColExpression);
         List<PostgresExpression> fromTableRefs = getTableRefs(tables);
         fromTableRefs.add(subquery);
-        testQuery.setFromList(fromTableRefs);
-        testQuery.setWhereClause(generateExistsSubquery(fromTableRefs));
+        PostgresSelect testQuery = generateScalarSubquery(fromTableRefs);
 
         if (options.logEachSelect()) {
             logger.writeCurrent(PostgresVisitor.asString(testQuery));
@@ -154,6 +151,17 @@ public class PostgresSubOracle extends SubBase<PostgresGlobalState, PostgresRowV
         List<PostgresExpression> scalarFromList = new ArrayList<>(fromList);
         scalarFromList.add(rowSubquery);
         scalarSubquery.setFromList(scalarFromList);
+
+        List<PostgresExpression> rowFetchList = rowSubquery.getFetchColumns();
+        List<PostgresExpression> scalarFetchList = Randomly.nonEmptySubset(rowFetchList, 1);
+        scalarSubquery.setFetchColumns(scalarFetchList);
+
+        // add a LIMIT 1
+        scalarSubquery.setLimitClause(PostgresConstant.createIntConstant(1));
+        if (Randomly.getBoolean()) {
+            scalarSubquery.setOffsetClause(
+                    PostgresConstant.createIntConstant(Randomly.getPositiveOrZeroNonCachedInteger()));
+        }
 
         return scalarSubquery;
     }
