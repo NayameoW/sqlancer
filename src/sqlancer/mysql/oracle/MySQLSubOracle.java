@@ -78,6 +78,7 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
 //        testSubquery = generateExistQuery(fromList, 3);
 //        testSubquery = generateOnlyWhereSubquery();
         profiler.endTick("generate_testcase");
+        profiler.getAvgTime("generate_testcase");
 
         if (state.getOptions().logEachSelect()) {
 //            logger.writeCurrent(MySQLVisitor.asString(testSubquery));
@@ -102,7 +103,7 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
         visitor.visit(rootNode);
 
         profiler.endTick("generate_tree");
-
+        profiler.getAvgTime("generate_tree");
 
         profiler.startTick("flattening");
         // testing oracle
@@ -154,6 +155,7 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
         }
 
         profiler.endTick("flattening");
+        profiler.getAvgTime("flattening");
 
         // test
 //        if (subqueryCount != flattenedCount) {

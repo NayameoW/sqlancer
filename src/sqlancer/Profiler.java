@@ -91,7 +91,7 @@ public class Profiler {
         }
 
         // start the tick!
-        startTime.put(tag, System.currentTimeMillis());
+        startTime.put(tag, System.nanoTime());
 //        log.debug("Tag {} stat tick.", tag);
         logger.writeCurrent("Tag " + tag + " started");
         updateMemory();
@@ -99,8 +99,8 @@ public class Profiler {
 
     public synchronized void endTick(String tag) {
         if (startTime.containsKey(tag)) {
-            long cur_time = System.currentTimeMillis();
-            long duration = cur_time - startTime.get(tag);
+            long cur_time = System.nanoTime();
+            long duration = (cur_time - startTime.get(tag)) / 1_000_000;
             long cur_memory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
 
             // update the counter, total_time and used memory
@@ -131,6 +131,7 @@ public class Profiler {
         if (!counter.containsKey(tag) || counter.get(tag) == 0) {
             return 0;
         }
+        logger.writeCurrent("Tag " + tag + " average time: " +  getTotalTime(tag) / counter.get(tag) + " ms");
         return getTotalTime(tag) / counter.get(tag);
     }
 
