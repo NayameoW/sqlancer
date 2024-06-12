@@ -105,7 +105,7 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
         profiler.endTick("generate_tree");
         profiler.getAvgTime("generate_tree");
 
-        profiler.startTick("flattening");
+        profiler.startTick("execution");
         // testing oracle
         int subqueryCount = 0;
         Query<SQLConnection> subqueryAdapter = new SQLQueryAdapter(MySQLVisitor.asString(testSubquery));
@@ -154,8 +154,8 @@ public class MySQLSubOracle extends SubBase<MySQLGlobalState, MySQLRowValue, MyS
 
         }
 
-        profiler.endTick("flattening");
-        profiler.getAvgTime("flattening");
+        profiler.endTick("execution");
+        profiler.getAvgTime("execution");
 
         // test
 //        if (subqueryCount != flattenedCount) {

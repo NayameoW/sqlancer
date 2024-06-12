@@ -100,7 +100,7 @@ public class Profiler {
     public synchronized void endTick(String tag) {
         if (startTime.containsKey(tag)) {
             long cur_time = System.nanoTime();
-            long duration = (cur_time - startTime.get(tag)) / 1_000_000;
+            long duration = (cur_time - startTime.get(tag));
             long cur_memory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
 
             // update the counter, total_time and used memory
@@ -111,7 +111,7 @@ public class Profiler {
             // rm the tick
             startTime.remove(tag);
 //            log.debug("Tag {} end tick after {} ms.", tag, duration);
-            logger.writeCurrent("Tag " + tag + " ended after " + duration + " ms");
+            logger.writeCurrent("Tag " + tag + " ended after " + duration + " ns");
         } else {
             // FIXME: shouldn't be here
             // but do nothing for now.
@@ -131,7 +131,7 @@ public class Profiler {
         if (!counter.containsKey(tag) || counter.get(tag) == 0) {
             return 0;
         }
-        logger.writeCurrent("Tag " + tag + " average time: " +  getTotalTime(tag) / counter.get(tag) + " ms");
+        logger.writeCurrent("Tag " + tag + " average time: " +  getTotalTime(tag) / counter.get(tag) + " ns");
         return getTotalTime(tag) / counter.get(tag);
     }
 
