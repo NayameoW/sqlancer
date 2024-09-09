@@ -10,7 +10,7 @@ import java.util.List;
 public class DBOptions implements DBMSSpecificOptions<DBOracleFactory> {
 
     @Override
-    public List getTestOracleFactory() {
+    public List<DBOracleFactory> getTestOracleFactory() {
         return List.of();
     }
 
